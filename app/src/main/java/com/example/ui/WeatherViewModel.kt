@@ -78,6 +78,25 @@ class WeatherViewModel : ViewModel() {
         }
     }
 
+    fun fetchGeminiWeatherByCoordinates(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            _geminiState.value = GeminiWeatherUiState.Loading
+            try {
+                val data = geminiRepository.getGeminiWeatherByCoordinates(lat, lon)
+                _geminiState.value = GeminiWeatherUiState.Success(data)
+                _currentCity.value = data.city
+                
+                // Sync standard radar view with resolved coordinates
+                val resolvedLat = data.latitude ?: lat
+                val resolvedLon = data.longitude ?: lon
+                fetchWeather(resolvedLat, resolvedLon)
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Error fetching Gemini weather by coordinates", e)
+                _geminiState.value = GeminiWeatherUiState.Error(e.message ?: "Unknown API error")
+            }
+        }
+    }
+
     fun fetchWeather(lat: Double = 52.52, lon: Double = 13.41) {
         viewModelScope.launch {
             _uiState.value = WeatherUiState.Loading

@@ -44,6 +44,19 @@ import com.example.data.GeminiWeatherData
 import java.text.SimpleDateFormat
 import java.util.*
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
+import android.util.Log
+import androidx.compose.ui.geometry.Offset
+
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,6 +65,85 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
     val currentCity by viewModel.currentCity.collectAsState()
 
     var searchInput by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    var isLocating by remember { mutableStateOf(false) }
+
+    fun fetchCurrentLocation() {
+        isLocating = true
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        
+        val hasGps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val hasNetwork = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        
+        val hasFinePermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarsePermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        
+        if (hasFinePermission || hasCoarsePermission) {
+            val provider = if (hasNetwork) LocationManager.NETWORK_PROVIDER else if (hasGps) LocationManager.GPS_PROVIDER else LocationManager.PASSIVE_PROVIDER
+            try {
+                // Get last known fallback first as a super fast responder
+                val lastKnown = locationManager.getLastKnownLocation(provider)
+                if (lastKnown != null) {
+                    val lat = lastKnown.latitude
+                    val lon = lastKnown.longitude
+                    viewModel.fetchGeminiWeatherByCoordinates(lat, lon)
+                    isLocating = false
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        locationManager.getCurrentLocation(
+                            provider,
+                            null,
+                            context.mainExecutor
+                        ) { location ->
+                            if (location != null) {
+                                viewModel.fetchGeminiWeatherByCoordinates(location.latitude, location.longitude)
+                            } else {
+                                Toast.makeText(context, "Device coordinates not locked. Simulating current location...", Toast.LENGTH_LONG).show()
+                                viewModel.fetchGeminiWeatherByCoordinates(40.7128, -74.0060) // New York fallback
+                            }
+                            isLocating = false
+                        }
+                    } else {
+                        val lastKnownGps = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        val lastKnownNet = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                        val bestLocation = lastKnownGps ?: lastKnownNet
+                        if (bestLocation != null) {
+                            viewModel.fetchGeminiWeatherByCoordinates(bestLocation.latitude, bestLocation.longitude)
+                        } else {
+                            Toast.makeText(context, "Device coordinates not locked. Simulating current location...", Toast.LENGTH_SHORT).show()
+                            viewModel.fetchGeminiWeatherByCoordinates(48.8566, 2.3522) // Paris fallback
+                        }
+                        isLocating = false
+                    }
+                }
+            } catch (e: SecurityException) {
+                Toast.makeText(context, "Permission error: ${e.message}", Toast.LENGTH_SHORT).show()
+                isLocating = false
+            } catch (e: Exception) {
+                Log.e("WeatherScreen", "Location dispatch failed", e)
+                Toast.makeText(context, "Location lookup failed. Simulating London...", Toast.LENGTH_SHORT).show()
+                viewModel.fetchGeminiWeatherByCoordinates(51.5074, -0.1278) // London fallback
+                isLocating = false
+            }
+        } else {
+            Toast.makeText(context, "Requesting location permissions...", Toast.LENGTH_SHORT).show()
+            isLocating = false
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            fetchCurrentLocation()
+        } else {
+            Toast.makeText(context, "Location permission denied. Simulating Tokyo...", Toast.LENGTH_LONG).show()
+            viewModel.fetchGeminiWeatherByCoordinates(35.6762, 139.6503) // Tokyo fallback
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -126,6 +218,43 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     Icon(Icons.Default.Search, contentDescription = "Execute search", tint = ImmersivePrimary)
+                }
+
+                Button(
+                    onClick = {
+                        val hasFinePermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        val hasCoarsePermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        if (hasFinePermission || hasCoarsePermission) {
+                            fetchCurrentLocation()
+                        } else {
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .height(56.dp)
+                        .testTag("use_current_location_button"),
+                    colors = ButtonDefaults.buttonColors(containerColor = ImmersiveSurface),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    if (isLocating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = ImmersivePrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.MyLocation,
+                            contentDescription = "Use current location",
+                            tint = ImmersivePrimary
+                        )
+                    }
                 }
             }
 
@@ -245,13 +374,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         }
                     }
                     is GeminiWeatherUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = ImmersivePrimary)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Analyzing atmosphere via Gemini...", color = ImmersiveTextSecondary, fontWeight = FontWeight.Medium)
-                            }
-                        }
+                        GeminiWeatherSkeleton()
                     }
                     is GeminiWeatherUiState.Success -> {
                         GeminiWeatherDisplay(state.data)
@@ -289,9 +412,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 // Original standard flow
                 when (val state = uiState) {
                     is WeatherUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = ImmersivePrimary)
-                        }
+                        StandardWeatherSkeleton()
                     }
                     is WeatherUiState.Success -> {
                         WeatherContent(state.weather, state.forecast, currentCity)
@@ -1343,5 +1464,486 @@ fun getWeatherDescription(code: Int): String {
         80, 81, 82 -> "Rain showers"
         95 -> "Thunderstorm"
         else -> "Cloudy"
+    }
+}
+
+@Composable
+fun rememberShimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition(label = "shimmer_transition_pulse")
+    val translateAnim = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_translate"
+    )
+    
+    return Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.05f),
+            Color.White.copy(alpha = 0.18f),
+            Color.White.copy(alpha = 0.05f)
+        ),
+        start = Offset(10f, 10f),
+        end = Offset(translateAnim.value + 10f, translateAnim.value + 10f)
+    )
+}
+
+@Composable
+fun GeminiWeatherSkeleton() {
+    val shimmerBrush = rememberShimmerBrush()
+    
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("gemini_weather_skeleton"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(bottom = 32.dp),
+        userScrollEnabled = false
+    ) {
+        // Main Weather Card skeleton
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = ImmersiveSurface.copy(alpha = 0.25f)
+                ),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // City Name bar
+                    Box(
+                        modifier = Modifier
+                            .width(150.dp)
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Animated Weather Icon circle
+                    Box(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .clip(RoundedCornerShape(55.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Temperature Big Text bar
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Condition Text bar
+                    Box(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Detail Items Row (3 cards)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(80.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(shimmerBrush)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Active Alerts Title skeleton & Item
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmerBrush)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = ImmersiveSurface.copy(alpha = 0.15f)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(shimmerBrush)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+            }
+        }
+
+        // 7-Day Outlook section
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .width(180.dp)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(shimmerBrush)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Forecast item rows placeholder
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                userScrollEnabled = false
+            ) {
+                items(4) {
+                    Card(
+                        modifier = Modifier
+                            .width(115.dp)
+                            .padding(end = 8.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = ImmersiveSurface.copy(alpha = 0.25f)
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp, horizontal = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(40.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(shimmerBrush)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(shimmerBrush)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(50.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(shimmerBrush)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(shimmerBrush)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Gemini Summary commentary bubble
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(
+                    topStart = 24.dp,
+                    topEnd = 24.dp,
+                    bottomEnd = 24.dp,
+                    bottomStart = 4.dp
+                ),
+                colors = CardDefaults.cardColors(
+                    containerColor = ImmersivePrimary.copy(alpha = 0.04f)
+                ),
+                border = BorderStroke(1.dp, ImmersivePrimary.copy(alpha = 0.05f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(shimmerBrush)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StandardWeatherSkeleton() {
+    val shimmerBrush = rememberShimmerBrush()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("standard_weather_skeleton")
+    ) {
+        // Header placeholder (City & Date)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(140.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(shimmerBrush)
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(bottom = 32.dp),
+            userScrollEnabled = false
+        ) {
+            // Current Weather Card skeleton
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(128.dp)
+                                .clip(RoundedCornerShape(64.dp))
+                                .background(shimmerBrush)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .width(110.dp)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(shimmerBrush)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            repeat(3) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(80.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(shimmerBrush)
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // 7-Day outlook header loading
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Forecast List card skeleton
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = ImmersiveSurface.copy(alpha = 0.25f)
+                    ),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        repeat(4) { index ->
+                            Row(
+                                modifier = Modifier
+                                    .padding(vertical = 12.dp)
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(48.dp)
+                                        .height(16.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(shimmerBrush)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(shimmerBrush)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(80.dp)
+                                        .height(16.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(shimmerBrush)
+                                )
+                            }
+                            if (index < 3) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = Color.White.copy(alpha = 0.03f),
+                                    thickness = 1.dp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
