@@ -1,8 +1,17 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
@@ -262,6 +271,77 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
 }
 
 @Composable
+fun AnimatedWeatherIcon(
+    icon: ImageVector,
+    color: Color,
+    animationStyle: String,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "weather_icon_transition")
+    
+    val animationModifier = when (animationStyle.lowercase()) {
+        "sunny", "clear sky", "clear" -> {
+            val rotation by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 16000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "sun_rotation"
+            )
+            Modifier.graphicsLayer(rotationZ = rotation)
+        }
+        "cloudy", "partly cloudy", "foggy", "cloud", "fog", "drizzle" -> {
+            val translationY by infiniteTransition.animateFloat(
+                initialValue = -8f,
+                targetValue = 8f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 4000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "cloud_floating"
+            )
+            Modifier.graphicsLayer(translationY = translationY)
+        }
+        "rainy", "thunderstorm", "snowy", "rain", "snow", "rain showers" -> {
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 0.93f,
+                targetValue = 1.07f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 3000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "rain_pulse"
+            )
+            Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+        }
+        "windy", "wind" -> {
+            val translationX by infiniteTransition.animateFloat(
+                initialValue = -10f,
+                targetValue = 10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 2800, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "wind_drift"
+            )
+            Modifier.graphicsLayer(translationX = translationX)
+        }
+        else -> {
+            Modifier
+        }
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Weather Animated Icon",
+        modifier = modifier.then(animationModifier),
+        tint = color
+    )
+}
+
+@Composable
 fun GeminiWeatherDisplay(data: GeminiWeatherData) {
     LazyColumn(
         modifier = Modifier
@@ -281,89 +361,113 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
                 ),
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = data.city.uppercase(),
-                        style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 2.sp),
-                        color = ImmersivePrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val (icon, color) = remember(data.icon) {
-                        val iconRes = when (data.icon.lowercase()) {
-                            "sunny" -> Icons.Rounded.WbSunny
-                            "cloudy" -> Icons.Rounded.CloudQueue
-                            "rainy" -> Icons.Rounded.Umbrella
-                            "thunderstorm" -> Icons.Rounded.Thunderstorm
-                            "snowy" -> Icons.Rounded.AcUnit
-                            "foggy" -> Icons.Rounded.Cloud
-                            "windy" -> Icons.Rounded.Air
-                            else -> Icons.Rounded.WbCloudy
-                        }
-                        val colorRes = when (data.icon.lowercase()) {
-                            "sunny" -> Color(0xFFFFD600)
-                            "cloudy" -> Color(0xFFCFD1D6)
-                            "rainy" -> Color(0xFF29B6F6)
-                            "thunderstorm" -> Color(0xFFAB47BC)
-                            "snowy" -> Color(0xFF80DEEA)
-                            "foggy" -> Color(0xFF90A4AE)
-                            "windy" -> Color(0xFF66BB6A)
-                            else -> ImmersivePrimary
-                        }
-                        iconRes to colorRes
-                    }
-
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = "AI Weather Condition",
-                        modifier = Modifier.size(110.dp),
-                        tint = color
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(verticalAlignment = Alignment.Top) {
-                        Text(
-                            text = "${data.temperature.toInt()}",
-                            style = MaterialTheme.typography.displayLarge.copy(
-                                fontSize = 80.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color.White
-                        )
-                        Text(
-                            text = "°",
-                            style = MaterialTheme.typography.displayLarge.copy(
-                                fontSize = 48.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = ImmersivePrimary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-
-                    Text(
-                        text = data.condition,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                AnimatedContent(
+                    targetState = data,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
+                                slideInVertically(animationSpec = tween(400, easing = FastOutSlowInEasing)) { it / 3 } +
+                                scaleIn(initialScale = 0.92f, animationSpec = tween(400, easing = FastOutSlowInEasing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                                scaleOut(targetScale = 0.95f, animationSpec = tween(300, easing = FastOutSlowInEasing))
+                            )
+                    },
+                    label = "weather_content_crossfade"
+                ) { targetData ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        WeatherDetailItem(Icons.Default.Air, "${data.windSpeed} km/h", "Wind", Modifier.weight(1f))
-                        WeatherDetailItem(Icons.Default.WaterDrop, "${data.humidity}%", "Humidity", Modifier.weight(1f))
+                        Text(
+                            text = targetData.city.uppercase(),
+                            style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 2.sp),
+                            color = ImmersivePrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val (icon, color) = remember(targetData.icon) {
+                            val iconRes = when (targetData.icon.lowercase()) {
+                                "sunny" -> Icons.Rounded.WbSunny
+                                "cloudy" -> Icons.Rounded.CloudQueue
+                                "rainy" -> Icons.Rounded.Umbrella
+                                "thunderstorm" -> Icons.Rounded.Thunderstorm
+                                "snowy" -> Icons.Rounded.AcUnit
+                                "foggy" -> Icons.Rounded.Cloud
+                                "windy" -> Icons.Rounded.Air
+                                else -> Icons.Rounded.WbCloudy
+                            }
+                            val colorRes = when (targetData.icon.lowercase()) {
+                                "sunny" -> Color(0xFFFFD600)
+                                "cloudy" -> Color(0xFFCFD1D6)
+                                "rainy" -> Color(0xFF29B6F6)
+                                "thunderstorm" -> Color(0xFFAB47BC)
+                                "snowy" -> Color(0xFF80DEEA)
+                                "foggy" -> Color(0xFF90A4AE)
+                                "windy" -> Color(0xFF66BB6A)
+                                else -> ImmersivePrimary
+                            }
+                            iconRes to colorRes
+                        }
+
+                        AnimatedWeatherIcon(
+                            icon = icon,
+                            color = color,
+                            animationStyle = targetData.icon,
+                            modifier = Modifier.size(110.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(verticalAlignment = Alignment.Top) {
+                            AnimatedContent(
+                                targetState = targetData.temperature.toInt(),
+                                transitionSpec = {
+                                    (fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) + 
+                                     slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it / 2 })
+                                        .togetherWith(fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)))
+                                },
+                                label = "temp_text_crossfade"
+                            ) { targetTemp ->
+                                Text(
+                                    text = "$targetTemp",
+                                    style = MaterialTheme.typography.displayLarge.copy(
+                                        fontSize = 80.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+                            Text(
+                                text = "°",
+                                style = MaterialTheme.typography.displayLarge.copy(
+                                    fontSize = 48.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = ImmersivePrimary,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+
+                        Text(
+                            text = targetData.condition,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            WeatherDetailItem(Icons.Default.Air, "${targetData.windSpeed} km/h", "Wind", Modifier.weight(1f))
+                            WeatherDetailItem(Icons.Default.WaterDrop, "${targetData.humidity}%", "Humidity", Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -386,30 +490,39 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
                 ),
                 border = BorderStroke(1.dp, ImmersivePrimary.copy(alpha = 0.15f))
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = ImmersivePrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                AnimatedContent(
+                    targetState = data.commentary,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) togetherWith
+                        fadeOut(animationSpec = tween(250, easing = FastOutSlowInEasing))
+                    },
+                    label = "commentary_transition"
+                ) { targetCommentary ->
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = ImmersivePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "GEMINI SUMMARY",
+                                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+                                color = ImmersivePrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "GEMINI SUMMARY",
-                            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-                            color = ImmersivePrimary,
-                            fontWeight = FontWeight.Bold
+                            text = "\"$targetCommentary\"",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = ImmersiveTextPrimary,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 22.sp
                         )
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "\"${data.commentary}\"",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = ImmersiveTextPrimary,
-                        fontWeight = FontWeight.Medium,
-                        lineHeight = 22.sp
-                    )
                 }
             }
         }
@@ -600,19 +713,31 @@ fun CurrentWeatherCard(weather: WeatherResponse) {
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = getWeatherIcon(current.weatherCode),
-                contentDescription = null,
-                modifier = Modifier.size(128.dp),
-                tint = Color.White
+            AnimatedWeatherIcon(
+                icon = getWeatherIcon(current.weatherCode),
+                color = Color.White,
+                animationStyle = getWeatherDescription(current.weatherCode),
+                modifier = Modifier.size(128.dp)
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    text = "${current.temperature.toInt()}",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Color.White
-                )
+                AnimatedContent(
+                    targetState = current.temperature.toInt(),
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) + 
+                         slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it / 2 })
+                            .togetherWith(fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)))
+                    },
+                    label = "current_temp_text_crossfade"
+                ) { targetTemp ->
+                    Text(
+                        text = "$targetTemp",
+                        style = MaterialTheme.typography.displayLarge,
+                        color = Color.White
+                    )
+                }
                 Text(
                     text = "°",
                     style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
@@ -620,6 +745,8 @@ fun CurrentWeatherCard(weather: WeatherResponse) {
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = getWeatherDescription(current.weatherCode),
