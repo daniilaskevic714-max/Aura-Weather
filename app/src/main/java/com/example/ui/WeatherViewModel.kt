@@ -57,12 +57,12 @@ class WeatherViewModel : ViewModel() {
         _isAiMode.value = enabled
     }
 
-    fun fetchGeminiWeather(city: String) {
+    fun fetchGeminiWeather(city: String, simulateDisaster: String? = null) {
         _currentCity.value = city
         viewModelScope.launch {
             _geminiState.value = GeminiWeatherUiState.Loading
             try {
-                val data = geminiRepository.getGeminiWeather(city)
+                val data = geminiRepository.getGeminiWeather(city, simulateDisaster)
                 _geminiState.value = GeminiWeatherUiState.Success(data)
                 
                 // Sync standard radar view with resolved coordinates

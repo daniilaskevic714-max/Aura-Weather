@@ -18,6 +18,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.draw.clip
 import com.example.ui.theme.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -189,7 +191,50 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AnimatedVisibility(visible = isAiMode) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "🚨 SIMULATE HAZARD / СИМУЛИРОВАТЬ СТИХИЮ:",
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                        color = ImmersiveTextSecondary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        val disasters = listOf(
+                            "Tsunami" to "🌊 Tsunami / Цунами",
+                            "Tornado" to "🌪️ Tornado / Торнадо",
+                            "Hurricane" to "🌀 Hurricane / Ураган",
+                            "Earthquake" to "💥 Earthquake / Землетрясение",
+                            "Volcanic Eruption" to "🌋 Volcano / Вулкан",
+                            "Flood" to "🌊 Flood / Наводнение"
+                        )
+                        
+                        items(disasters) { (type, label) ->
+                            AssistChip(
+                                onClick = {
+                                    viewModel.fetchGeminiWeather(currentCity, type)
+                                },
+                                label = { Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp) },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = Color(0xFFF44336).copy(alpha = 0.2f)
+                                ),
+                                border = BorderStroke(1.dp, Color(0xFFF44336).copy(alpha = 0.4f)),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             if (isAiMode) {
                 // Gemini flow
@@ -342,6 +387,352 @@ fun AnimatedWeatherIcon(
 }
 
 @Composable
+fun GeminiForecastItem(forecastDay: com.example.data.GeminiForecastDay) {
+    val (icon, color) = remember(forecastDay.icon) {
+        val iconRes = when (forecastDay.icon.lowercase()) {
+            "sunny" -> Icons.Rounded.WbSunny
+            "cloudy" -> Icons.Rounded.CloudQueue
+            "rainy" -> Icons.Rounded.Umbrella
+            "thunderstorm" -> Icons.Rounded.Thunderstorm
+            "snowy" -> Icons.Rounded.AcUnit
+            "foggy" -> Icons.Rounded.Cloud
+            "windy" -> Icons.Rounded.Air
+            else -> Icons.Rounded.WbCloudy
+        }
+        val colorRes = when (forecastDay.icon.lowercase()) {
+            "sunny" -> Color(0xFFFFD600)
+            "cloudy" -> Color(0xFFCFD1D6)
+            "rainy" -> Color(0xFF29B6F6)
+            "thunderstorm" -> Color(0xFFAB47BC)
+            "snowy" -> Color(0xFF80DEEA)
+            "foggy" -> Color(0xFF90A4AE)
+            "windy" -> Color(0xFF66BB6A)
+            else -> ImmersivePrimary
+        }
+        iconRes to colorRes
+    }
+
+    Card(
+        modifier = Modifier
+            .width(115.dp)
+            .padding(end = 8.dp)
+            .testTag("gemini_forecast_card_${forecastDay.day.lowercase()}"),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ImmersiveSurface.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = forecastDay.day.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+                color = ImmersiveTextSecondary,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Icon(
+                imageVector = icon,
+                contentDescription = forecastDay.condition,
+                modifier = Modifier.size(36.dp),
+                tint = color
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = forecastDay.condition,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "${forecastDay.tempMax.toInt()}°",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ImmersivePrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "${forecastDay.tempMin.toInt()}°",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+fun getDisasterSafetySteps(eventName: String): List<String> {
+    val ev = eventName.lowercase()
+    return when {
+        ev.contains("tsunami") || ev.contains("цунами") -> listOf(
+            "Move inland to high ground immediately upon receiving warning / Немедленно уходите на возвышенность при угрозе цунами.",
+            "Stay away from beaches, coastal harbors, and river mouths / Держитесь как можно дальше от побережья и устьев рек.",
+            "Never go down to the shore to watch a tsunami wave / Ни в коем случае не спускайтесь к берегу посмотреть на волны.",
+            "Monitor official emergency signals and instructions / Внимательно следите за официальными сигналами оповещения."
+        )
+        ev.contains("tornado") || ev.contains("торнадо") || ev.contains("смерч") -> listOf(
+            "Seek shelter in a basement, storm cellar, or interior room / Срочно укройтесь в подвале, погребе или надежной внутренней комнате.",
+            "Stay away from windows, outer walls, and glass surfaces / Находитесь вдали от окон, внешних стен и стекол.",
+            "Protect your head and neck with arms, heavy clothes, or pillows / Защитите голову и шею руками, одеждой или подушками.",
+            "If in a mobile home or vehicle, evacuate to a sturdy building / Немедленно покиньте легкие строения или автомобили."
+        )
+        ev.contains("earthquake") || ev.contains("землетрясение") -> listOf(
+            "Drop, Cover, and Hold On under sturdy furniture / Лягте на пол, укройтесь под крепким столом и держитесь.",
+            "Stay inside until shaking stops; beware of falling objects / Не выбегайте на улицу во время толчков, берегитесь обломков.",
+            "If outdoors, move to an open area away from power lines and buildings / На улице отойдите на открытое пространство.",
+            "Be prepared for potential strong aftershocks / Будьте готовы к повторным толчкам (афтершокам)."
+        )
+        ev.contains("hurricane") || ev.contains("ураган") || ev.contains("тайфун") || ev.contains("циклон") -> listOf(
+            "Secure high-risk outdoor items and reinforce windows/doors / Закрепите предметы на улице и надежно закройте все окна.",
+            "Stay indoors in a central room, away from glass and outer walls / Находитесь во внутренних помещениях здания.",
+            "Keep emergency food, drinking water, and flashlight ready / Подготовьте аварийный запас еды, воды и фонарик.",
+            "Evacuate immediately if order is issued by emergency staff / Срочно эвакуируйтесь при объявлении официального приказа."
+        )
+        ev.contains("volcan") || ev.contains("извержение") -> listOf(
+            "Evacuate the exclusion zone according to local instructions / Срочно эвакуируйтесь из опасной зоны вулкана.",
+            "Wear high-efficiency respiratory protection (N95) and goggles / Используйте респираторы и очки для защиты от пепла.",
+            "Stay inside with all doors and windows tightly closed / В зоне пеплопада закройте все окна и двери и оставайтесь дома.",
+            "Avoid valley drainage basins where volcanic mudslides/lahars occur / Избегайте долин рек, подверженных сходу селей."
+        )
+        ev.contains("flood") || ev.contains("наводнение") || ev.contains("паводок") -> listOf(
+            "Move immediately to higher floors or higher land / Срочно перейдите на верхние этажи здания или возвышенности.",
+            "Do NOT walk, swim, or drive through flood waters / Не пытайтесь переходить или переезжать потоки воды.",
+            "Turn off domestic electricity, gas, and water inputs / Отключите в доме электричество, газ и воду.",
+            "Have your emergency document backpack and supplies ready / Держите готовым тревожный рюкзак с документами."
+        )
+        else -> listOf(
+            "Follow active evacuations and advice from municipal authorities / Следуйте указаниям представителей власти и служб спасения.",
+            "Keep emergency contacts and a fully charged phone with you / Держите при себе заряженный телефон и контакты экстренных служб.",
+            "Avoid unnecessary travel until active advisory ends / Воздержитесь от поездок до окончания действия предупреждения."
+        )
+    }
+}
+
+private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+@Composable
+fun GeminiAlertItem(alert: com.example.data.GeminiAlert) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    val (bgColor, borderColor, iconColor, icon) = remember(alert.severity) {
+        when (alert.severity.lowercase()) {
+            "extreme" -> Quad(
+                Color(0x22F44336), 
+                Color(0x66F44336), 
+                Color(0xFFE53935),
+                Icons.Rounded.Warning
+            )
+            "severe" -> Quad(
+                Color(0x22FF9800), 
+                Color(0x66FF9800),
+                Color(0xFFFB8C00),
+                Icons.Rounded.Warning
+            )
+            "moderate" -> Quad(
+                Color(0x1ADBFF00), 
+                Color(0x40FFD54F),
+                Color(0xFFFFD54F),
+                Icons.Rounded.Info
+            )
+            else -> Quad(
+                Color(0x1229B6F6), 
+                Color(0x3329B6F6),
+                Color(0xFF29B6F6),
+                Icons.Rounded.Info
+            )
+        }
+    }
+
+    val isCritical = alert.severity.lowercase() == "extreme" || alert.severity.lowercase() == "severe"
+    val infiniteTransition = rememberInfiniteTransition(label = "severe_alert_glow")
+    val alphaGlow by if (isCritical) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "alert_glow_alpha"
+        )
+    } else {
+        remember { mutableStateOf(1.0f) }
+    }
+
+    val animBorderColor = if (isCritical) iconColor.copy(alpha = alphaGlow) else borderColor
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .testTag("gemini_alert_card_${alert.event.lowercase().replace(" ", "_")}"),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = BorderStroke(1.dp, animBorderColor),
+        onClick = { isExpanded = !isExpanded }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "Alert Icon",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = alert.event,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Issued by ${alert.sender}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconColor.copy(alpha = 0.2f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = alert.severity.uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp),
+                        color = iconColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Text(
+                text = alert.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                lineHeight = 18.sp
+            )
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Schedule,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Ends: ${alert.ends}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = if (isExpanded) "Hide Guide" else "Tap for Survival Info",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = iconColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                        contentDescription = "Expand guidelines",
+                        tint = iconColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "SAFETY INSTRUCTIONS / ИНСТРУКЦИИ ПО БЕЗОПАСНОСТИ:",
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp),
+                        color = iconColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    
+                    val steps = remember(alert.event) {
+                        getDisasterSafetySteps(alert.event)
+                    }
+                    
+                    steps.forEach { step ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "• ",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = iconColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.95f),
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun GeminiWeatherDisplay(data: GeminiWeatherData) {
     LazyColumn(
         modifier = Modifier
@@ -463,18 +854,90 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             WeatherDetailItem(Icons.Default.Air, "${targetData.windSpeed} km/h", "Wind", Modifier.weight(1f))
                             WeatherDetailItem(Icons.Default.WaterDrop, "${targetData.humidity}%", "Humidity", Modifier.weight(1f))
+                            val uvDisplay = when {
+                                targetData.uvIndex == null -> "Low"
+                                targetData.uvIndex < 3 -> "Low"
+                                targetData.uvIndex < 6 -> "Mod"
+                                targetData.uvIndex < 8 -> "High"
+                                targetData.uvIndex < 11 -> "V. High"
+                                else -> "Extreme"
+                            }
+                            WeatherDetailItem(Icons.Default.WbSunny, uvDisplay, "UV Index", Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
 
+        data.alerts?.takeIf { it.isNotEmpty() }?.let { alertList ->
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFFF5252),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "ACTIVE ALERTS & ADVISORIES",
+                            style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
+                            color = Color(0xFFFF5252),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            items(alertList) { alert ->
+                GeminiAlertItem(alert)
+            }
+        }
+
+        data.forecast?.let { forecastList ->
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "7-DAY OUTLOOK",
+                        style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
+                        color = ImmersivePrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(forecastList) { dayItem ->
+                        GeminiForecastItem(dayItem)
+                    }
+                }
+            }
+        }
+
         item {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // AI commentary bubble
             Card(

@@ -45,6 +45,22 @@ data class GeminiCandidate(
 
 // --- Parsed Weather Data Model ---
 
+data class GeminiForecastDay(
+    @Json(name = "day") val day: String,
+    @Json(name = "tempMax") val tempMax: Double,
+    @Json(name = "tempMin") val tempMin: Double,
+    @Json(name = "condition") val condition: String,
+    @Json(name = "icon") val icon: String // "sunny", "cloudy", "rainy", "thunderstorm", "snowy", "foggy", "windy"
+)
+
+data class GeminiAlert(
+    @Json(name = "event") val event: String,
+    @Json(name = "sender") val sender: String,
+    @Json(name = "severity") val severity: String, // "Minor", "Moderate", "Severe", "Extreme"
+    @Json(name = "description") val description: String,
+    @Json(name = "ends") val ends: String
+)
+
 data class GeminiWeatherData(
     @Json(name = "city") val city: String,
     @Json(name = "temperature") val temperature: Double,
@@ -54,7 +70,10 @@ data class GeminiWeatherData(
     @Json(name = "humidity") val humidity: Int,
     @Json(name = "commentary") val commentary: String,
     @Json(name = "latitude") val latitude: Double? = null,
-    @Json(name = "longitude") val longitude: Double? = null
+    @Json(name = "longitude") val longitude: Double? = null,
+    @Json(name = "uvIndex") val uvIndex: Double? = null,
+    @Json(name = "forecast") val forecast: List<GeminiForecastDay>? = null,
+    @Json(name = "alerts") val alerts: List<GeminiAlert>? = null
 )
 
 interface GeminiApiService {
