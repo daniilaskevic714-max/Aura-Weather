@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Aura Weather</string>
+    <string name="weather_today">Today</string>
+    <string name="forecast_7_days">7-Day Forecast</string>
+    <string name="loading_weather">Fetching weather data...</string>
+    <string name="error_fetching">Failed to load weather. Check your connection.</string>
+    <string name="unknown_location">Unknown Location</string>
+</resources>

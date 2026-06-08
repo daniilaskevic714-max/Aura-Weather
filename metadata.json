@@ -1,0 +1,6 @@
+{
+  "name": "Aura Weather",
+  "description": "A beautiful and modern weather app featuring today's overview and a 7-day forecast.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
