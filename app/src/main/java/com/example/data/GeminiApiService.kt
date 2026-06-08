@@ -52,7 +52,9 @@ data class GeminiWeatherData(
     @Json(name = "icon") val icon: String, // "sunny", "cloudy", "rainy", "thunderstorm", "snowy", "foggy", "windy"
     @Json(name = "windSpeed") val windSpeed: Double,
     @Json(name = "humidity") val humidity: Int,
-    @Json(name = "commentary") val commentary: String
+    @Json(name = "commentary") val commentary: String,
+    @Json(name = "latitude") val latitude: Double? = null,
+    @Json(name = "longitude") val longitude: Double? = null
 )
 
 interface GeminiApiService {

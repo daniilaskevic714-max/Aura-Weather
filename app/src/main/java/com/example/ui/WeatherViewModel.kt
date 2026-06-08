@@ -64,6 +64,13 @@ class WeatherViewModel : ViewModel() {
             try {
                 val data = geminiRepository.getGeminiWeather(city)
                 _geminiState.value = GeminiWeatherUiState.Success(data)
+                
+                // Sync standard radar view with resolved coordinates
+                val lat = data.latitude
+                val lon = data.longitude
+                if (lat != null && lon != null) {
+                    fetchWeather(lat, lon)
+                }
             } catch (e: Exception) {
                 Log.e("WeatherViewModel", "Error fetching Gemini weather", e)
                 _geminiState.value = GeminiWeatherUiState.Error(e.message ?: "Unknown API error")

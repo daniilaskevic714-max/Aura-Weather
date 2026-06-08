@@ -25,11 +25,13 @@ class GeminiWeatherRepository {
               "icon": "cloudy",
               "windSpeed": 15.0,
               "humidity": 60,
-              "commentary": "A refreshing breeze sweeps through $city today."
+              "commentary": "A refreshing breeze sweeps through $city today.",
+              "latitude": 52.52,
+              "longitude": 13.41
             }
             
             Valid 'icon' strings are only: "sunny", "cloudy", "rainy", "thunderstorm", "snowy", "foggy", "windy".
-            Ensure the fields are accurate to the climate or typical weather of $city for this time, and make the 'commentary' lively, slightly witty, and highly descriptive.
+            Ensure the fields are accurate to the climate or typical weather of $city for this time, provide accurate geographic 'latitude' and 'longitude' coordinates for this city, and make the 'commentary' lively, slightly witty, and highly descriptive.
         """.trimIndent()
 
         val request = GeminiRequest(
