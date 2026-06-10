@@ -22,6 +22,7 @@ import com.example.ui.theme.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.launch
 import com.example.R
 import com.example.data.ForecastDay
 import com.example.data.WeatherResponse
@@ -958,6 +960,9 @@ fun GeminiAlertItem(alert: com.example.data.GeminiAlert) {
 
 @Composable
 fun GeminiWeatherDisplay(data: GeminiWeatherData) {
+    val forecastListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1155,10 +1160,49 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
                         color = ImmersivePrimary,
                         fontWeight = FontWeight.Bold
                     )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val targetIndex = (forecastListState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+                                    forecastListState.animateScrollToItem(targetIndex)
+                                }
+                            },
+                            enabled = forecastListState.canScrollBackward
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBack,
+                                contentDescription = "Scroll Left",
+                                tint = if (forecastListState.canScrollBackward) ImmersivePrimary else ImmersivePrimary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val targetIndex = (forecastListState.firstVisibleItemIndex + 1).coerceAtLeast(0)
+                                    forecastListState.animateScrollToItem(targetIndex)
+                                }
+                            },
+                            enabled = forecastListState.canScrollForward
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowForward,
+                                contentDescription = "Scroll Right",
+                                tint = if (forecastListState.canScrollForward) ImmersivePrimary else ImmersivePrimary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 LazyRow(
+                    state = forecastListState,
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -1273,6 +1317,9 @@ fun GeminiApiKeyWarningCard() {
 
 @Composable
 fun WeatherContent(weather: WeatherResponse, forecast: List<ForecastDay>, activeCity: String) {
+    val forecastListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -1302,44 +1349,66 @@ fun WeatherContent(weather: WeatherResponse, forecast: List<ForecastDay>, active
 
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = stringResource(R.string.forecast_7_days).uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
+                        color = ImmersivePrimary,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "View Details",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val targetIndex = (forecastListState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+                                    forecastListState.animateScrollToItem(targetIndex)
+                                }
+                            },
+                            enabled = forecastListState.canScrollBackward
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBack,
+                                contentDescription = "Scroll Left",
+                                tint = if (forecastListState.canScrollBackward) ImmersivePrimary else ImmersivePrimary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val targetIndex = (forecastListState.firstVisibleItemIndex + 1).coerceAtLeast(0)
+                                    forecastListState.animateScrollToItem(targetIndex)
+                                }
+                            },
+                            enabled = forecastListState.canScrollForward
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowForward,
+                                contentDescription = "Scroll Right",
+                                tint = if (forecastListState.canScrollForward) ImmersivePrimary else ImmersivePrimary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glassmorphic(32.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Transparent
-                    )
+                
+                LazyRow(
+                    state = forecastListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        forecast.drop(1).take(5).forEachIndexed { index, day ->
-                            ForecastItem(day)
-                            if (index < 4) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 4.dp),
-                                    color = Color.White.copy(alpha = 0.05f),
-                                    thickness = 1.dp
-                                )
-                            }
-                        }
+                    items(forecast.drop(1)) { dayItem ->
+                        StandardForecastCard(dayItem)
                     }
                 }
             }
@@ -1506,6 +1575,92 @@ fun WeatherDetailItem(icon: ImageVector, value: String, label: String, modifier:
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White
             )
+        }
+    }
+}
+
+@Composable
+fun StandardForecastCard(day: ForecastDay) {
+    val dateStr = day.date
+    val dayOfWeek = remember(dateStr) {
+        try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val outputFormat = SimpleDateFormat("EEE", Locale.getDefault())
+            val date = inputFormat.parse(dateStr)
+            outputFormat.format(date ?: Date())
+        } catch (e: Exception) {
+            "???"
+        }
+    }
+    val condition = remember(day.weatherCode) {
+        getWeatherDescription(day.weatherCode)
+    }
+    val icon = remember(day.weatherCode) {
+        getWeatherIcon(day.weatherCode)
+    }
+
+    Card(
+        modifier = Modifier
+            .width(115.dp)
+            .padding(end = 8.dp)
+            .glassmorphic(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = dayOfWeek.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+                color = ImmersiveTextSecondary,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Icon(
+                imageVector = icon,
+                contentDescription = condition,
+                modifier = Modifier.size(36.dp),
+                tint = if (condition == "Clear sky") Color(0xFFFFD600) else ImmersivePrimary
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = condition,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "${day.tempMax.toInt()}°",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ImmersivePrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "${day.tempMin.toInt()}°",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            }
         }
     }
 }
