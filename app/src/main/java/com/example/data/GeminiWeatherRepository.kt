@@ -4,10 +4,58 @@ import android.util.Log
 import com.example.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import kotlinx.coroutines.delay
 
 class GeminiWeatherRepository {
     private val apiService = GeminiRetrofitClient.service
     private val moshi = GeminiRetrofitClient.moshiInstance
+
+    private suspend fun <T> executeWithRetry(
+        retries: Int = 4,
+        initialDelayMillis: Long = 1500,
+        factor: Double = 2.0,
+        block: suspend () -> T
+    ): T {
+        var currentDelay = initialDelayMillis
+        repeat(retries - 1) { attempt ->
+            try {
+                return block()
+            } catch (e: HttpException) {
+                if (e.code() == 429) {
+                    Log.w("GeminiRepository", "HTTP 429 Too Many Requests. Retrying in $currentDelay ms (attempt ${attempt + 1}).")
+                    delay(currentDelay)
+                    currentDelay = (currentDelay * factor).toLong()
+                } else {
+                    throw e
+                }
+            } catch (e: Exception) {
+                if (e.message?.contains("429") == true) {
+                    Log.w("GeminiRepository", "Detected 429 in message. Retrying in $currentDelay ms (attempt ${attempt + 1}).")
+                    delay(currentDelay)
+                    currentDelay = (currentDelay * factor).toLong()
+                } else {
+                    throw e
+                }
+            }
+        }
+        
+        try {
+            return block()
+        } catch (e: HttpException) {
+            if (e.code() == 429) {
+                throw Exception("Ошибка 429 (Too Many Requests): Превышен лимит запросов к Gemini API. Пожалуйста, подождите несколько секунд и попробуйте снова. / API Rate Limit Exceeded. Please wait a few seconds and try again.")
+            } else {
+                throw e
+            }
+        } catch (e: Exception) {
+            if (e.message?.contains("429") == true) {
+                throw Exception("Ошибка 429 (Too Many Requests): Превышен лимит запросов к Gemini API. Пожалуйста, подождите несколько секунд и попробуйте снова. / API Rate Limit Exceeded. Please wait a few seconds and try again.")
+            } else {
+                throw e
+            }
+        }
+    }
 
     suspend fun getGeminiWeather(city: String, simulateDisaster: String? = null): GeminiWeatherData = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
@@ -91,7 +139,7 @@ class GeminiWeatherRepository {
         )
 
         try {
-            val response = apiService.generateContent(apiKey, request)
+            val response = executeWithRetry { apiService.generateContent(apiKey, request) }
             val rawText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
                 ?: throw Exception("No content received from Gemini API.")
 
@@ -185,7 +233,7 @@ class GeminiWeatherRepository {
         )
 
         try {
-            val response = apiService.generateContent(apiKey, request)
+            val response = executeWithRetry { apiService.generateContent(apiKey, request) }
             val rawText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
                 ?: throw Exception("No content received from Gemini API.")
 

@@ -458,7 +458,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                                         onClick = { viewModel.fetchGeminiWeather(currentCity) },
                                         colors = ButtonDefaults.buttonColors(containerColor = ImmersiveSurface)
                                     ) {
-                                        Text("Retry", color = Color.White)
+                                        Text("Повторить попытку / Retry", color = Color.White)
                                     }
                                 }
                             }
@@ -482,7 +482,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                                 Text(text = state.message, color = MaterialTheme.colorScheme.error)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(onClick = { viewModel.fetchWeather() }) {
-                                    Text("Retry")
+                                    Text("Повторить попытку / Retry")
                                 }
                             }
                         }
@@ -2868,43 +2868,107 @@ fun AtmosphericWeatherParticles(style: String) {
                         strokeWidth = 3.dp.toPx()
                     )
                 }
+                
+                // Fine gold sunbeams and ambient floating solar dust particles
+                val solarMotes = 25
+                for (i in 0 until solarMotes) {
+                    val x = ((i * 19309) % width.toInt()).toFloat()
+                    val y = ((i * 11579) % height.toInt()).toFloat()
+                    
+                    // Gentle float up and sideways
+                    val floatY = (y - sweepFloat * height * 0.15f) % height
+                    val positiveY = if (floatY < 0) floatY + height else floatY
+                    val floatX = (x + sin(sweepFloat * Math.PI.toFloat() + i) * 15.dp.toPx()) % width
+                    
+                    val goldGlow = sin(sweepFloat * 2f * Math.PI.toFloat() + i).coerceIn(0f, 1f)
+                    val goldAlpha = (0.08f + 0.22f * goldGlow)
+                    
+                    drawCircle(
+                        color = Color(0xFFFFD54F).copy(alpha = goldAlpha),
+                        radius = (1.5.dp + (i % 2).dp).toPx(),
+                        center = Offset(floatX, positiveY)
+                    )
+                }
             }
             
             styleLower.contains("rain") || styleLower.contains("thunder") || styleLower.contains("storm") || styleLower.contains("drizzle") -> {
-                val totalDrops = 30
+                val totalDrops = 65
                 for (i in 0 until totalDrops) {
                     val xSeed = (i * 7919) % width.toInt()
                     val ySeed = (i * 9973) % height.toInt()
-                    val speedScalar = 1f + (i % 3) * 0.3f
+                    val speedScalar = 0.8f + (i % 4) * 0.40f
                     
                     val dY = (ySeed + (rainFloat / 100f) * height * speedScalar) % height
-                    val dX = (xSeed + dY * 0.15f) % width 
+                    
+                    // Dynamic wind sway angle based on intensity
+                    val windVelocity = if (styleLower.contains("thunder") || styleLower.contains("storm")) 25.dp.toPx() else 8.dp.toPx()
+                    val dX = (xSeed + dY * 0.12f + sweepFloat * windVelocity) % width 
+                    
+                    // Fade near top and bottom boundaries to prevent clipping popping
+                    val verticalFade = when {
+                        dY < 120.dp.toPx() -> dY / 120.dp.toPx()
+                        dY > height - 120.dp.toPx() -> (height - dY) / 120.dp.toPx()
+                        else -> 1.0f
+                    }.coerceIn(0f, 1f)
+                    
+                    val dropAlpha = (0.12f + (i % 5) * 0.11f) * verticalFade
+                    val strokeW = (0.8f + (i % 3) * 0.4f).dp.toPx()
+                    val dropLength = (10 + (i % 3) * 6).dp.toPx()
+                    
+                    val slantX = strokeW * 1.5f + (if (styleLower.contains("thunder")) 5f else 2f)
                     
                     drawLine(
-                        color = Color(0xFF38BDF8).copy(alpha = 0.35f),
+                        color = Color(0xFF38BDF8).copy(alpha = dropAlpha),
                         start = Offset(dX, dY),
-                        end = Offset(dX + 3.dp.toPx(), dY + 15.dp.toPx()),
-                        strokeWidth = 1.2.dp.toPx()
+                        end = Offset(dX + slantX, dY + dropLength),
+                        strokeWidth = strokeW
                     )
                 }
             }
             
             styleLower.contains("snow") || styleLower.contains("ice") -> {
-                val totalFlakes = 25
+                val totalFlakes = 65
                 for (i in 0 until totalFlakes) {
                     val xSeed = (i * 12347) % width.toInt()
                     val ySeed = (i * 8707) % height.toInt()
-                    val speedScalar = 0.6f + (i % 4) * 0.15f
+                    val speedScalar = 0.4f + (i % 5) * 0.15f
                     
                     val dY = (ySeed + snowFloat * height * speedScalar) % height
-                    val sway = sin(snowFloat * 4f * Math.PI.toFloat() + i) * 15.dp.toPx()
+                    val swayFreq = 2f + (i % 3) * 1.5f
+                    val swayAmp = (10 + (i % 3) * 8).dp.toPx()
+                    val sway = sin(snowFloat * swayFreq * Math.PI.toFloat() + i) * swayAmp
                     val dX = (xSeed + sway) % width
                     
-                    drawCircle(
-                        color = Color.White.copy(alpha = 0.6f),
-                        radius = (2.dp + (i % 3).dp).toPx(),
-                        center = Offset(dX, dY)
-                    )
+                    // Fade near top/bottom boundaries to prevent flake popping
+                    val verticalFade = when {
+                        dY < 150.dp.toPx() -> dY / 150.dp.toPx()
+                        dY > height - 150.dp.toPx() -> (height - dY) / 150.dp.toPx()
+                        else -> 1.0f
+                    }.coerceIn(0f, 1f)
+                    
+                    val baseAlpha = 0.25f + (i % 5) * 0.14f
+                    val flakeAlpha = baseAlpha * verticalFade
+                    val baseRadius = (1.5.dp + (i % 4).dp).toPx()
+                    
+                    if (i % 8 == 0) {
+                        // Cinematic visual bokeh style snowflake blurring
+                        val bokehRadius = baseRadius * 3.5f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color.White.copy(alpha = flakeAlpha * 0.5f), Color.Transparent),
+                                center = Offset(dX, dY),
+                                radius = bokehRadius
+                            ),
+                            radius = bokehRadius,
+                            center = Offset(dX, dY)
+                        )
+                    } else {
+                        drawCircle(
+                            color = Color.White.copy(alpha = flakeAlpha),
+                            radius = baseRadius,
+                            center = Offset(dX, dY)
+                        )
+                    }
                 }
             }
             
@@ -2933,55 +2997,82 @@ fun AtmosphericWeatherParticles(style: String) {
                         
                         drawPath(
                             path = path,
-                            color = Color(0xFF64748B).copy(alpha = 0.15f + (layer * 0.04f)),
+                            color = Color(0xFF64748B).copy(alpha = 0.12f + (layer * 0.03f)),
                             style = Stroke(
-                                width = (3.dp + layer.dp).toPx(),
+                                width = (2.dp + layer.dp).toPx(),
                                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 15f), sweepFloat * 100f)
                             )
                         )
                     }
+                    
+                    // Swirling orbital atmospheric dust/debris
+                    val swarmCount = 20
+                    for (i in 0 until swarmCount) {
+                        val orbitalProgress = (sweepFloat * 2f + i * 0.05f) % 1f
+                        val layer = i % 5
+                        val radius = (baseRadius - layer * 20.dp.toPx()) * (0.8f + 0.4f * sin(orbitalProgress * 2f * Math.PI.toFloat()))
+                        val angleRad = (orbitalProgress * 360f) * (Math.PI / 180.0)
+                        
+                        val px = cx + radius * kotlin.math.cos(angleRad).toFloat()
+                        val py = (cy - layer * 35.dp.toPx()) + (radius * 0.25f) * kotlin.math.sin(angleRad).toFloat()
+                        
+                        drawCircle(
+                            color = Color(0xFFC084FC).copy(alpha = 0.35f),
+                            radius = (1.dp + (i % 2).dp).toPx(),
+                            center = Offset(px, py)
+                        )
+                    }
                 } else {
-                    val linesCount = 6
+                    val linesCount = 8
                     for (i in 0 until linesCount) {
-                        val yOffset = (height * 0.2f) + i * (height * 0.12f)
-                        val speedScalar = 1f + (i % 2) * 0.3f
+                        val yOffset = (height * 0.15f) + i * (height * 0.1f)
+                        val speedScalar = 1.2f + (i % 3) * 0.4f
                         val animOffset = (sweepFloat * width * speedScalar) % width
                         
                         val path = Path().apply {
-                            moveTo(animOffset - 120.dp.toPx(), yOffset)
+                            moveTo(animOffset - 160.dp.toPx(), yOffset)
                             cubicTo(
-                                animOffset - 60.dp.toPx(), yOffset - 25.dp.toPx(),
-                                animOffset, yOffset + 25.dp.toPx(),
-                                animOffset + 60.dp.toPx(), yOffset
+                                animOffset - 80.dp.toPx(), yOffset - 30.dp.toPx(),
+                                animOffset, yOffset + 30.dp.toPx(),
+                                animOffset + 80.dp.toPx(), yOffset
                             )
                         }
                         
                         drawPath(
                             path = path,
-                            color = ImmersivePrimary.copy(alpha = 0.15f),
+                            color = Color(0xFFC084FC).copy(alpha = 0.14f),
                             style = Stroke(
-                                width = 1.5.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
+                                width = (1.dp + (i % 2).dp).toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 30f), sweepFloat * 20f)
                             )
                         )
                     }
                 }
             }
-
+            
             styleLower.contains("volcano") || styleLower.contains("eruption") -> {
-                val totalSparks = 30
+                val totalSparks = 45
                 for (i in 0 until totalSparks) {
                     val xSeed = (i * 3121) % width.toInt()
                     val ySeed = (i * 5437) % height.toInt()
-                    val speedScalar = 0.8f + (i % 3) * 0.3f
+                    val speedScalar = 0.5f + (i % 4) * 0.25f
                     val dY = (ySeed - sweepFloat * height * speedScalar) % height
                     val positiveY = if (dY < 0) dY + height else dY
                     
-                    val sway = sin(sweepFloat * 6f * Math.PI.toFloat() + i) * 12.dp.toPx()
+                    val sway = sin(sweepFloat * 4f * Math.PI.toFloat() + i) * 15.dp.toPx()
                     val dX = (xSeed + sway) % width
                     
+                    val flicker = 0.3f + 0.7f * sin(sweepFloat * 8f * Math.PI.toFloat() + i).coerceIn(0f, 1f)
+                    val sparkleColor = if (i % 3 == 0) {
+                        Color(0xFFFF3D00).copy(alpha = 0.75f * flicker)
+                    } else if (i % 3 == 1) {
+                        Color(0xFFFF9100).copy(alpha = 0.75f * flicker)
+                    } else {
+                        Color(0xFFFFD600).copy(alpha = 0.55f * flicker)
+                    }
+                    
                     drawCircle(
-                        color = if (i % 2 == 0) Color(0xFFEF4444).copy(alpha = 0.7f) else Color(0xFFF97316).copy(alpha = 0.7f),
+                        color = sparkleColor,
                         radius = (1.5.dp + (i % 3).dp).toPx(),
                         center = Offset(dX, positiveY)
                     )
@@ -3017,14 +3108,14 @@ fun AtmosphericWeatherParticles(style: String) {
             }
             
             else -> {
-                val starCount = 20
+                val starCount = 30
                 for (i in 0 until starCount) {
                     val x = ((i * 123457) % width.toInt()).toFloat()
                     val y = ((i * 76543) % height.toInt()).toFloat()
                     val glowFactor = 0.3f + 0.7f * sin(sweepFloat * 2f * Math.PI.toFloat() + i).coerceIn(0f, 1f)
                     
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.5f * glowFactor),
+                        color = Color.White.copy(alpha = 0.45f * glowFactor),
                         radius = (1.dp + (i % 2).dp).toPx(),
                         center = Offset(x, y)
                     )
