@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Hazard Warning Triangle -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M12,2L1,21h22L12,2z" />
+    <!-- Exclamation Core (Insides) -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M11,10h2v4h-2V10z M11,16h2v2h-2V16z" />
+</vector>

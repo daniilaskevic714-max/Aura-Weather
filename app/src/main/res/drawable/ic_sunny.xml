@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Sun Center -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M12,6c-3.31,0 -6,2.69 -6,6s2.69,6 6,6 6,-2.69 6,-6 -2.69,-6 -6,-6z" />
+    <!-- Vertical and Horizontal Rays -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M11,1h2v3h-2zm0,19h2v3h-2zm9,-9h3v2h-3zm-17,0h3v2H3z" />
+    <!-- Diagonal Rays -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M17.66,5.64l1.41,-1.41l1.41,1.41l-1.41,1.41zm-11.31,11.31l1.41,-1.41l1.41,1.41l-1.41,1.41zm11.31,1.41l1.41,1.41l-1.41,1.41l-1.41,-1.41zm-12.73,-12.73l1.41,-1.41l1.41,1.41l-1.41,1.41z" />
+</vector>

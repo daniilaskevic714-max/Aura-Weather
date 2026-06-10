@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Top wide layer -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M1,3h22v2.5h-22z" />
+    <!-- Secondary layer -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M3,7h18v2.2h-18z" />
+    <!-- Middle layer -->
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M5.5,11h13v2h-13z" />
+    <!-- Lower narrow layer -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M8,15h8v1.8h-8z" />
+    <!-- Bottom vortex point -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M10.5,19h3v1.5h-3z" />
+</vector>

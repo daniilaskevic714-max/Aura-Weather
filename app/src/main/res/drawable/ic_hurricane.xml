@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Center Eye -->
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M12,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <!-- Spiral Arm 1 -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M12,4c-4.42,0 -8,3.58 -8,8c0,1.42 0.38,2.77 1.03,3.94l-2.43,2.43c-1.02,-1.82 -1.6,-3.91 -1.6,-6.37c0,-6.63 5.37,-12 12,-12c2.46,0 4.55,0.58 6.37,1.6l-2.43,2.43c-1.17,-0.65 -2.52,-1.03 -3.94,-1.03z" />
+    <!-- Spiral Arm 2 -->
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M12,20c4.42,0 8,-3.58 8,-8c0,-1.42 -0.38,-2.77 -1.03,-3.94l2.43,-2.43c1.02,1.82 1.6,3.91 1.6,6.37c0,6.63 -5.37,12 -12,12c-2.46,0 -4.55,-0.58 -6.37,-1.6l2.43,-2.43c1.17,0.65 2.52,1.03 3.94,1.03z" />
+</vector>

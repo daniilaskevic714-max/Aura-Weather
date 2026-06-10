@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -361,13 +362,24 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
 
             AnimatedVisibility(visible = isAiMode) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "🚨 SIMULATE HAZARD / СИМУЛИРОВАТЬ СТИХИЮ:",
-                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                        color = ImmersiveTextSecondary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_warning),
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "SIMULATE HAZARD / СИМУЛИРОВАТЬ СТИХИЮ:",
+                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                            color = ImmersiveTextSecondary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -375,18 +387,26 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         contentPadding = PaddingValues(bottom = 8.dp)
                     ) {
                         val disasters = listOf(
-                            "Tsunami" to "🌊 Tsunami / Цунами",
-                            "Tornado" to "🌪️ Tornado / Торнадо",
-                            "Hurricane" to "🌀 Hurricane / Ураган",
-                            "Earthquake" to "💥 Earthquake / Землетрясение",
-                            "Volcanic Eruption" to "🌋 Volcano / Вулкан",
-                            "Flood" to "🌊 Flood / Наводнение"
+                            Triple("Tsunami", "Tsunami / Цунами", R.drawable.ic_tsunami),
+                            Triple("Tornado", "Tornado / Торнадо", R.drawable.ic_tornado),
+                            Triple("Hurricane", "Hurricane / Ураган", R.drawable.ic_hurricane),
+                            Triple("Earthquake", "Earthquake / Землетрясение", R.drawable.ic_earthquake),
+                            Triple("Volcanic Eruption", "Volcano / Вулкан", R.drawable.ic_volcano),
+                            Triple("Flood", "Flood / Наводнение", R.drawable.ic_flood)
                         )
                         
-                        items(disasters) { (type, label) ->
+                        items(disasters) { (type, label, iconRes) ->
                             AssistChip(
                                 onClick = {
                                     viewModel.fetchGeminiWeather(currentCity, type)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(id = iconRes),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 },
                                 label = { Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp) },
                                 colors = AssistChipDefaults.assistChipColors(

@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ground Line Left Piece -->
+    <path
+        android:fillColor="#F43F5E"
+        android:pathData="M2,18 L6,18 L9,14 L10,15 L11,12 L7,12 L3,16 L2,16 Z" />
+    <!-- Ground Line Right Piece -->
+    <path
+        android:fillColor="#BE123C"
+        android:pathData="M22,18 L18,18 L15,13 L14,14 L12,11 L16,11 L20,15 L22,15 Z" />
+    <!-- Center Crack lines -->
+    <path
+        android:fillColor="#E11D48"
+        android:pathData="M11.5,4 L12.5,4 L11,9 L13,12 L10,15 L12.5,18 L11.5,18 L9.5,14 L12,11 L10,9 Z" />
+</vector>
