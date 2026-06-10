@@ -16,6 +16,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.Dp
 import com.example.ui.theme.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -217,10 +220,10 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedContainerColor = ImmersiveSurface,
-                        unfocusedContainerColor = ImmersiveSurface.copy(alpha = 0.5f),
+                        focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
                         focusedBorderColor = ImmersivePrimary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.12f)
                     ),
                     shape = RoundedCornerShape(16.dp),
                     trailingIcon = {
@@ -239,8 +242,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                             if (isAiMode) {
                                 viewModel.fetchGeminiWeather(city)
                             } else {
-                                // Standard mode requires lat/lon, but for seamless feel we still query Gemini
-                                // update or we can just fetch standard forecast via Gemini query too
                                 viewModel.fetchGeminiWeather(city)
                             }
                         }
@@ -248,8 +249,9 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                     modifier = Modifier
                         .height(56.dp)
                         .testTag("city_search_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ImmersiveSurface),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.06f)),
                     shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.03f)))),
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     Icon(Icons.Default.Search, contentDescription = "Execute search", tint = ImmersivePrimary)
@@ -273,8 +275,9 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                     modifier = Modifier
                         .height(56.dp)
                         .testTag("use_current_location_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ImmersiveSurface),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.06f)),
                     shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.03f)))),
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     if (isLocating) {
@@ -299,8 +302,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(ImmersiveSurface.copy(alpha = 0.5f))
+                    .glassmorphic(16.dp)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -311,7 +313,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         .height(40.dp)
                         .testTag("toggle_ai_mode"),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isAiMode) ImmersiveSurface else Color.Transparent,
+                        containerColor = if (isAiMode) Color.White.copy(alpha = 0.12f) else Color.Transparent,
                         contentColor = if (isAiMode) Color.White else ImmersiveTextSecondary
                     ),
                     shape = RoundedCornerShape(12.dp),
@@ -336,7 +338,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                         .height(40.dp)
                         .testTag("toggle_standard_mode"),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!isAiMode) ImmersiveSurface else Color.Transparent,
+                        containerColor = if (!isAiMode) Color.White.copy(alpha = 0.12f) else Color.Transparent,
                         contentColor = if (!isAiMode) Color.White else ImmersiveTextSecondary
                     ),
                     shape = RoundedCornerShape(12.dp),
@@ -496,8 +498,8 @@ fun AnimatedWeatherIcon(
         }
         "cloudy", "partly cloudy", "foggy", "cloud", "fog", "drizzle" -> {
             val translationY by infiniteTransition.animateFloat(
-                initialValue = -8f,
-                targetValue = 8f,
+                initialValue = -6f,
+                targetValue = 6f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = 4000, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
@@ -508,8 +510,8 @@ fun AnimatedWeatherIcon(
         }
         "rainy", "thunderstorm", "snowy", "rain", "snow", "rain showers" -> {
             val scale by infiniteTransition.animateFloat(
-                initialValue = 0.93f,
-                targetValue = 1.07f,
+                initialValue = 0.94f,
+                targetValue = 1.06f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = 3000, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
@@ -520,8 +522,8 @@ fun AnimatedWeatherIcon(
         }
         "windy", "wind" -> {
             val translationX by infiniteTransition.animateFloat(
-                initialValue = -10f,
-                targetValue = 10f,
+                initialValue = -8f,
+                targetValue = 8f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = 2800, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
@@ -535,26 +537,72 @@ fun AnimatedWeatherIcon(
         }
     }
 
-    Icon(
-        imageVector = icon,
-        contentDescription = "Weather Animated Icon",
-        modifier = modifier.then(animationModifier),
-        tint = color
+    // Glow scale pulsing
+    val glowScale by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "neon_glow_pulse"
     )
+
+    Box(
+        modifier = modifier.then(animationModifier),
+        contentAlignment = Alignment.Center
+    ) {
+        // Deep radial glow backdrop
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .graphicsLayer {
+                    scaleX = glowScale
+                    scaleY = glowScale
+                }
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(color.copy(alpha = 0.35f), Color.Transparent)
+                    )
+                )
+        )
+        
+        // Secondary neon colored outline layer
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.04f
+                    scaleY = 1.04f
+                    alpha = 0.5f
+                },
+            tint = color
+        )
+        
+        // Intense bright white core of the outline sign
+        Icon(
+            imageVector = icon,
+            contentDescription = "Weather Animated Icon",
+            modifier = Modifier.fillMaxSize(),
+            tint = Color.White
+        )
+    }
 }
 
 @Composable
 fun GeminiForecastItem(forecastDay: com.example.data.GeminiForecastDay) {
     val (icon, color) = remember(forecastDay.icon) {
         val iconRes = when (forecastDay.icon.lowercase()) {
-            "sunny" -> Icons.Rounded.WbSunny
-            "cloudy" -> Icons.Rounded.CloudQueue
-            "rainy" -> Icons.Rounded.Umbrella
-            "thunderstorm" -> Icons.Rounded.Thunderstorm
-            "snowy" -> Icons.Rounded.AcUnit
-            "foggy" -> Icons.Rounded.Cloud
-            "windy" -> Icons.Rounded.Air
-            else -> Icons.Rounded.WbCloudy
+            "sunny" -> Icons.Outlined.WbSunny
+            "cloudy" -> Icons.Outlined.CloudQueue
+            "rainy" -> Icons.Outlined.Umbrella
+            "thunderstorm" -> Icons.Outlined.Thunderstorm
+            "snowy" -> Icons.Outlined.AcUnit
+            "foggy" -> Icons.Outlined.Cloud
+            "windy" -> Icons.Outlined.Air
+            else -> Icons.Outlined.WbCloudy
         }
         val colorRes = when (forecastDay.icon.lowercase()) {
             "sunny" -> Color(0xFFFFD600)
@@ -573,12 +621,11 @@ fun GeminiForecastItem(forecastDay: com.example.data.GeminiForecastDay) {
         modifier = Modifier
             .width(115.dp)
             .padding(end = 8.dp)
+            .glassmorphic(24.dp)
             .testTag("gemini_forecast_card_${forecastDay.day.lowercase()}"),
-        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = ImmersiveSurface.copy(alpha = 0.45f)
-        ),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+            containerColor = Color.Transparent
+        )
     ) {
         Column(
             modifier = Modifier
@@ -902,12 +949,11 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(32.dp),
+                    .padding(vertical = 8.dp)
+                    .glassmorphic(32.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = ImmersiveSurface.copy(alpha = 0.4f)
-                ),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                    containerColor = Color.Transparent
+                )
             ) {
                 AnimatedContent(
                     targetState = data,
@@ -939,14 +985,14 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
 
                         val (icon, color) = remember(targetData.icon) {
                             val iconRes = when (targetData.icon.lowercase()) {
-                                "sunny" -> Icons.Rounded.WbSunny
-                                "cloudy" -> Icons.Rounded.CloudQueue
-                                "rainy" -> Icons.Rounded.Umbrella
-                                "thunderstorm" -> Icons.Rounded.Thunderstorm
-                                "snowy" -> Icons.Rounded.AcUnit
-                                "foggy" -> Icons.Rounded.Cloud
-                                "windy" -> Icons.Rounded.Air
-                                else -> Icons.Rounded.WbCloudy
+                                "sunny" -> Icons.Outlined.WbSunny
+                                "cloudy" -> Icons.Outlined.CloudQueue
+                                "rainy" -> Icons.Outlined.Umbrella
+                                "thunderstorm" -> Icons.Outlined.Thunderstorm
+                                "snowy" -> Icons.Outlined.AcUnit
+                                "foggy" -> Icons.Outlined.Cloud
+                                "windy" -> Icons.Outlined.Air
+                                else -> Icons.Outlined.WbCloudy
                             }
                             val colorRes = when (targetData.icon.lowercase()) {
                                 "sunny" -> Color(0xFFFFD600)
@@ -983,8 +1029,9 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
                                 Text(
                                     text = "$targetTemp",
                                     style = MaterialTheme.typography.displayLarge.copy(
-                                        fontSize = 80.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontSize = 110.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = (-4).sp
                                     ),
                                     color = Color.White
                                 )
@@ -992,8 +1039,8 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
                             Text(
                                 text = "°",
                                 style = MaterialTheme.typography.displayLarge.copy(
-                                    fontSize = 48.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 54.sp,
+                                    fontWeight = FontWeight.Light
                                 ),
                                 color = ImmersivePrimary,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -1255,12 +1302,12 @@ fun WeatherContent(weather: WeatherResponse, forecast: List<ForecastDay>, active
 
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassmorphic(32.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = ImmersiveSurface.copy(alpha = 0.4f)
-                    ),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                        containerColor = Color.Transparent
+                    )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         forecast.drop(1).take(5).forEachIndexed { index, day ->
@@ -1336,21 +1383,19 @@ fun HeaderSection(activeCity: String) {
 @Composable
 fun CurrentWeatherCard(weather: WeatherResponse) {
     val current = weather.current ?: return
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        // Glow effect
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .background(ImmersivePrimary.copy(alpha = 0.05f), RoundedCornerShape(100.dp))
+            .padding(vertical = 8.dp)
+            .glassmorphic(32.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
         )
-
+    ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedWeatherIcon(
@@ -1374,15 +1419,22 @@ fun CurrentWeatherCard(weather: WeatherResponse) {
                 ) { targetTemp ->
                     Text(
                         text = "$targetTemp",
-                        style = MaterialTheme.typography.displayLarge,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 110.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = (-4).sp
+                        ),
                         color = Color.White
                     )
                 }
                 Text(
                     text = "°",
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 54.sp,
+                        fontWeight = FontWeight.Light
+                    ),
                     color = ImmersivePrimary,
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
@@ -1522,6 +1574,29 @@ fun getWeatherDescription(code: Int): String {
         else -> "Cloudy"
     }
 }
+
+fun Modifier.glassmorphic(
+    cornerRadius: Dp = 24.dp
+): Modifier = this
+    .clip(RoundedCornerShape(cornerRadius))
+    .background(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.02f)
+            )
+        )
+    )
+    .border(
+        width = 1.2.dp,
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.22f),
+                Color.White.copy(alpha = 0.03f)
+            )
+        ),
+        shape = RoundedCornerShape(cornerRadius)
+    )
 
 @Composable
 fun rememberShimmerBrush(): Brush {
@@ -2009,16 +2084,10 @@ fun UvIndexWidget(uvIndex: Double) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(135.dp),
-        shape = RoundedCornerShape(24.dp),
+            .height(135.dp)
+            .glassmorphic(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.04f)
-        ),
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
-            )
+            containerColor = Color.Transparent
         )
     ) {
         Column(
@@ -2150,16 +2219,10 @@ fun WindCompassWidget(windSpeed: Double) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(135.dp),
-        shape = RoundedCornerShape(24.dp),
+            .height(135.dp)
+            .glassmorphic(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.04f)
-        ),
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
-            )
+            containerColor = Color.Transparent
         )
     ) {
         Column(
@@ -2302,16 +2365,10 @@ fun HumidityGaugeWidget(humidity: Int) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(135.dp),
-        shape = RoundedCornerShape(24.dp),
+            .height(135.dp)
+            .glassmorphic(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.04f)
-        ),
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
-            )
+            containerColor = Color.Transparent
         )
     ) {
         Column(
@@ -2458,16 +2515,10 @@ fun SunProgressWidget(isDay: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(135.dp),
-        shape = RoundedCornerShape(24.dp),
+            .height(135.dp)
+            .glassmorphic(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.04f)
-        ),
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
-            )
+            containerColor = Color.Transparent
         )
     ) {
         Column(
@@ -2644,52 +2695,52 @@ fun AtmosphericAuroraBackground(style: String) {
         val styleLower = style.lowercase()
         when {
             styleLower.contains("sun") || styleLower.contains("clear") -> listOf(
-                Color(0xFF0F172A), Color(0xFF1E1E38), 
-                Color(0xFFEAB308).copy(alpha = 0.15f), 
-                Color(0xFFF97316).copy(alpha = 0.1f),  
-                Color(0xFF3B82F6).copy(alpha = 0.12f)  
+                Color(0xFF0C4A6E), Color(0xFF0284C7), 
+                Color(0xFFFDE047).copy(alpha = 0.28f), 
+                Color(0xFFF97316).copy(alpha = 0.22f),  
+                Color(0xFF38BDF8).copy(alpha = 0.25f)  
             )
             styleLower.contains("rain") || styleLower.contains("thunder") || styleLower.contains("storm") || styleLower.contains("drizzle") -> listOf(
-                Color(0xFF0B131E), Color(0xFF1E2640), 
-                Color(0xFF6366F1).copy(alpha = 0.14f), 
-                Color(0xFF1D4ED8).copy(alpha = 0.15f), 
-                Color(0xFF8B5CF6).copy(alpha = 0.12f)  
+                Color(0xFF030712), Color(0xFF1E1B4B), 
+                Color(0xFF6366F1).copy(alpha = 0.32f), 
+                Color(0xFFEC4899).copy(alpha = 0.22f), 
+                Color(0xFF3B82F6).copy(alpha = 0.20f)  
             )
             styleLower.contains("snow") || styleLower.contains("ice") -> listOf(
-                Color(0xFF0A192F), Color(0xFF1E293B), 
-                Color(0xFF38BDF8).copy(alpha = 0.18f), 
-                Color(0xFF06B6D4).copy(alpha = 0.12f), 
-                Color(0xFFE2E8F0).copy(alpha = 0.15f)  
+                Color(0xFF082F49), Color(0xFF0F172A), 
+                Color(0xFF06B6D4).copy(alpha = 0.30f), 
+                Color(0xFFE2E8F0).copy(alpha = 0.25f), 
+                Color(0xFF38BDF8).copy(alpha = 0.22f)  
             )
             styleLower.contains("cloud") || styleLower.contains("fog") || styleLower.contains("mist") -> listOf(
                 Color(0xFF0F172A), Color(0xFF1E293B), 
-                Color(0xFF475569).copy(alpha = 0.15f), 
-                Color(0xFF334155).copy(alpha = 0.15f), 
-                Color(0xFF64748B).copy(alpha = 0.1f)   
+                Color(0xFFC084FC).copy(alpha = 0.25f), 
+                Color(0xFF94A3B8).copy(alpha = 0.20f), 
+                Color(0xFF475569).copy(alpha = 0.18f)   
             )
             styleLower.contains("volcano") || styleLower.contains("eruption") -> listOf(
                 Color(0xFF0C0202), Color(0xFF1E0A0A), 
-                Color(0xFFEF4444).copy(alpha = 0.18f), 
-                Color(0xFFF97316).copy(alpha = 0.15f), 
-                Color(0xFF781E1E).copy(alpha = 0.12f)  
+                Color(0xFFEF4444).copy(alpha = 0.32f), 
+                Color(0xFFF97316).copy(alpha = 0.25f), 
+                Color(0xFF781E1E).copy(alpha = 0.20f)  
             )
             styleLower.contains("tsunami") || styleLower.contains("flood") || styleLower.contains("wave") -> listOf(
                 Color(0xFF02162E), Color(0xFF0F2D54), 
-                Color(0xFF0D9488).copy(alpha = 0.16f), 
-                Color(0xFF2563EB).copy(alpha = 0.18f), 
-                Color(0xFF0284C7).copy(alpha = 0.12f)  
+                Color(0xFF0D9488).copy(alpha = 0.28f), 
+                Color(0xFF2563EB).copy(alpha = 0.25f), 
+                Color(0xFF0284C7).copy(alpha = 0.20f)  
             )
             styleLower.contains("tornado") || styleLower.contains("hurricane") || styleLower.contains("wind") -> listOf(
                 Color(0xFF0F172A), Color(0xFF202B3E), 
-                Color(0xFF10B981).copy(alpha = 0.12f), 
-                Color(0xFF475569).copy(alpha = 0.18f), 
-                Color(0xFF0369A1).copy(alpha = 0.15f)  
+                Color(0xFF10B981).copy(alpha = 0.24f), 
+                Color(0xFF64748B).copy(alpha = 0.22f), 
+                Color(0xFF0369A1).copy(alpha = 0.20f)  
             )
             else -> listOf(
-                Color(0xFF0B1528), Color(0xFF020617), 
-                Color(0xFF8B5CF6).copy(alpha = 0.14f), 
-                Color(0xFF3B82F6).copy(alpha = 0.14f), 
-                Color(0xFFEC4899).copy(alpha = 0.1f)   
+                Color(0xFF0F172A), Color(0xFF020617), 
+                Color(0xFF8B5CF6).copy(alpha = 0.38f), 
+                Color(0xFF3B82F6).copy(alpha = 0.32f), 
+                Color(0xFFEC4899).copy(alpha = 0.25f)   
             )
         }
     }
