@@ -56,6 +56,11 @@ import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalContext
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
+import kotlin.math.sin
 
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel) {
@@ -145,24 +150,54 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
         }
     }
 
+    val activeStyle = remember(isAiMode, uiState, geminiState) {
+        if (isAiMode) {
+            when (val state = geminiState) {
+                is GeminiWeatherUiState.Success -> {
+                    val alertEvent = state.data.alerts?.firstOrNull()?.event?.lowercase() ?: ""
+                    val alertDesc = state.data.alerts?.firstOrNull()?.description?.lowercase() ?: ""
+                    when {
+                        alertEvent.contains("tsunami") || alertDesc.contains("tsunami") || alertDesc.contains("цунами") -> "tsunami"
+                        alertEvent.contains("tornado") || alertDesc.contains("tornado") || alertDesc.contains("торнадо") -> "tornado"
+                        alertEvent.contains("hurricane") || alertDesc.contains("hurricane") || alertDesc.contains("ураган") -> "hurricane"
+                        alertEvent.contains("volcan") || alertDesc.contains("volcan") || alertDesc.contains("вулкан") -> "volcano"
+                        alertEvent.contains("flood") || alertDesc.contains("flood") || alertDesc.contains("наводн") -> "flood"
+                        alertEvent.contains("earthquake") || alertDesc.contains("earthquake") || alertDesc.contains("землетряс") -> "volcano"
+                        else -> state.data.icon.lowercase()
+                    }
+                }
+                else -> "neutral"
+            }
+        } else {
+            when (val state = uiState) {
+                is WeatherUiState.Success -> {
+                    getWeatherDescription(state.weather.current?.weatherCode ?: 0).lowercase()
+                }
+                else -> "neutral"
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        ImmersiveBgStart,
-                        ImmersiveBgEnd
-                    )
-                )
-            )
-            .statusBarsPadding()
     ) {
-        Column(
+        // Dynamic live atmospheric aurora gradient waves
+        AtmosphericAuroraBackground(style = activeStyle)
+        
+        // Active visual simulation particle dynamics
+        AtmosphericWeatherParticles(style = activeStyle)
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .statusBarsPadding()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+            ) {
             // Dynamic Top Navigation / Search Section
             Row(
                 modifier = Modifier
@@ -433,6 +468,7 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
                 }
             }
         }
+    }
     }
 }
 
@@ -994,6 +1030,15 @@ fun GeminiWeatherDisplay(data: GeminiWeatherData) {
             }
         }
 
+        item {
+            WeatherMetricsGrid(
+                windSpeed = data.windSpeed,
+                humidity = data.humidity,
+                uvIndex = data.uvIndex,
+                isDay = true
+            )
+        }
+
         data.alerts?.takeIf { it.isNotEmpty() }?.let { alertList ->
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1174,6 +1219,17 @@ fun WeatherContent(weather: WeatherResponse, forecast: List<ForecastDay>, active
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 CurrentWeatherCard(weather)
+                
+                val current = weather.current
+                if (current != null) {
+                    WeatherMetricsGrid(
+                        windSpeed = current.windSpeed,
+                        humidity = current.humidity,
+                        uvIndex = 1.8,
+                        isDay = current.isDay == 1
+                    )
+                }
+                
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -1943,6 +1999,1008 @@ fun StandardWeatherSkeleton() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun UvIndexWidget(uvIndex: Double) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(135.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.04f)
+        ),
+        border = BorderStroke(
+            width = 1.2.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "UV INDEX / УФ-ИНДЕКС",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                    color = ImmersiveTextSecondary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Rounded.WbSunny,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD600),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            
+            val doubleVal = uvIndex
+            val category = when {
+                doubleVal < 3.0 -> "Low / Низкий"
+                doubleVal < 6.0 -> "Moderate / Средний"
+                doubleVal < 8.0 -> "High / Высокий"
+                doubleVal < 11.0 -> "Very High / Очень выс."
+                else -> "Extreme / Экстрем."
+            }
+            
+            val uvColor = when {
+                doubleVal < 3.0 -> Color(0xFF4CAF50)
+                doubleVal < 6.0 -> Color(0xFFFFEB3B)
+                doubleVal < 8.0 -> Color(0xFFFF9800)
+                doubleVal < 11.0 -> Color(0xFFF44336)
+                else -> Color(0xFF9C27B0)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = String.format("%.1f", doubleVal),
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = uvColor
+                    )
+                }
+                
+                // Beautiful Curved Glow Arc Gauge
+                Canvas(modifier = Modifier.size(54.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val radius = size.width / 2f - 4.dp.toPx()
+                    
+                    // Draw outer dim arc guide
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.08f),
+                        startAngle = 135f,
+                        sweepAngle = 270f,
+                        useCenter = false,
+                        style = Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    )
+                    
+                    // Draw neon spectrum active arc
+                    val activeAngle = (doubleVal.coerceIn(0.0, 11.0) / 11.0 * 270.0).toFloat()
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            colors = listOf(Color(0xFF4CAF50), Color(0xFFFFEA00), Color(0xFFE040FB))
+                        ),
+                        startAngle = 135f,
+                        sweepAngle = activeAngle.coerceAtLeast(10f),
+                        useCenter = false,
+                        style = Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    )
+                    
+                    // Calculate glowing thumb coordinates
+                    val thumbAngleRad = ((135f + activeAngle) * (Math.PI / 180.0)).toFloat()
+                    val tx = cx + radius * kotlin.math.cos(thumbAngleRad.toDouble()).toFloat()
+                    val ty = cy + radius * kotlin.math.sin(thumbAngleRad.toDouble()).toFloat()
+                    
+                    // Outer glow halo
+                    drawCircle(
+                        color = uvColor.copy(alpha = 0.4f),
+                        radius = 6.dp.toPx(),
+                        center = Offset(tx, ty)
+                    )
+                    // Inner bright white cursor core
+                    drawCircle(
+                        color = Color.White,
+                        radius = 2.5.dp.toPx(),
+                        center = Offset(tx, ty)
+                    )
+                }
+            }
+            
+            // Linear spectrum bar index at the bottom
+            Canvas(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))) {
+                val brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF4CAF50), // Low
+                        Color(0xFFFFEB3B), // Moderate
+                        Color(0xFFFF9800), // High
+                        Color(0xFFF44336), // Very High
+                        Color(0xFF9C27B0)  // Extreme
+                    )
+                )
+                drawRect(brush = brush)
+            }
+        }
+    }
+}
+
+@Composable
+fun WindCompassWidget(windSpeed: Double) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(135.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.04f)
+        ),
+        border = BorderStroke(
+            width = 1.2.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "WIND / ВЕТЕР",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                    color = ImmersiveTextSecondary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Rounded.Air,
+                    contentDescription = null,
+                    tint = ImmersivePrimary,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "${windSpeed.toInt()} km/h",
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                    val desc = when {
+                        windSpeed < 5.0 -> "Calm / Штиль"
+                        windSpeed < 15.0 -> "Breeze / Легкий"
+                        windSpeed < 30.0 -> "Moderate / Умерен."
+                        windSpeed < 50.0 -> "Strong / Сильный"
+                        else -> "Gale / Буря"
+                    }
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = ImmersiveTextSecondary
+                    )
+                }
+
+                val transition = rememberInfiniteTransition(label = "turbine_rotation")
+                val rotationAngle by transition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(
+                            durationMillis = if (windSpeed > 1) {
+                                (3500 / (windSpeed / 10).coerceAtLeast(0.5)).toInt().coerceIn(300, 6000)
+                            } else {
+                                10000000 
+                            },
+                            easing = LinearEasing
+                        ),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "angle"
+                )
+
+                // High-End Compass Dial & Pin on Canvas
+                Canvas(modifier = Modifier.size(54.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val radius = size.width / 2f
+                    
+                    // Draw circular compass dial base
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.05f),
+                        radius = radius,
+                        center = Offset(cx, cy)
+                    )
+                    drawCircle(
+                        color = ImmersivePrimary.copy(alpha = 0.2f),
+                        radius = radius,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                    
+                    // Cardinal markings N, E, S, W ticking
+                    val tickLength = 3.dp.toPx()
+                    for (deg in 0..315 step 45) {
+                        val angleRad = (deg * (Math.PI / 180.0)).toFloat()
+                        val outerX = cx + radius * kotlin.math.cos(angleRad.toDouble()).toFloat()
+                        val outerY = cy + radius * kotlin.math.sin(angleRad.toDouble()).toFloat()
+                        val innerX = cx + (radius - tickLength) * kotlin.math.cos(angleRad.toDouble()).toFloat()
+                        val innerY = cy + (radius - tickLength) * kotlin.math.sin(angleRad.toDouble()).toFloat()
+                        
+                        drawLine(
+                            color = if (deg % 90 == 0) ImmersivePrimary.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
+                            start = Offset(innerX, innerY),
+                            end = Offset(outerX, outerY),
+                            strokeWidth = (if (deg % 90 == 0) 1.5.dp else 0.8.dp).toPx()
+                        )
+                    }
+
+                    // Rotating wind vector arrow pointing with soft glow
+                    val vectorAngleRad = (rotationAngle * (Math.PI / 180.0)).toFloat()
+                    val arrowX = cx + (radius - 5.dp.toPx()) * kotlin.math.cos(vectorAngleRad.toDouble()).toFloat()
+                    val arrowY = cy + (radius - 5.dp.toPx()) * kotlin.math.sin(vectorAngleRad.toDouble()).toFloat()
+                    
+                    // Draw vector wind arrow
+                    drawLine(
+                        color = ImmersivePrimary,
+                        start = Offset(cx, cy),
+                        end = Offset(arrowX, arrowY),
+                        strokeWidth = 2.dp.toPx()
+                    )
+                    
+                    drawCircle(
+                        color = ImmersivePrimary,
+                        radius = 3.dp.toPx(),
+                        center = Offset(arrowX, arrowY)
+                    )
+                    
+                    // Central hub pin
+                    drawCircle(
+                        color = Color.White,
+                        radius = 4.dp.toPx(),
+                        center = Offset(cx, cy)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HumidityGaugeWidget(humidity: Int) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(135.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.04f)
+        ),
+        border = BorderStroke(
+            width = 1.2.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "HUMIDITY / ВЛАЖНОСТЬ",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                    color = ImmersiveTextSecondary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Rounded.WaterDrop,
+                    contentDescription = null,
+                    tint = Color(0xFF29B6F6),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            
+            val status = when {
+                humidity < 35 -> "Dry / Сухость"
+                humidity < 60 -> "Optimal / Комфорт"
+                else -> "Humid / Влажность"
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "$humidity%",
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = Color(0xFF29B6F6)
+                    )
+                }
+                
+                // Magnificent Round Glowing 3D Wave Beaker Gauge
+                val transition = rememberInfiniteTransition(label = "wave_motion")
+                val waveOffset by transition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = (2f * Math.PI).toFloat(),
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2500, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "wave_offset"
+                )
+
+                Canvas(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(27.dp))
+                ) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val radius = size.width / 2f
+                    
+                    // Beaker cylinder back fill
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.05f),
+                        radius = radius,
+                        center = Offset(cx, cy)
+                    )
+                    
+                    // Wave liquid calculation
+                    val level = humidity / 100f
+                    val fillY = size.height * (1f - level)
+                    
+                    val path1 = Path().apply {
+                        moveTo(0f, size.height)
+                        for (x in 0..size.width.toInt() step 2) {
+                            val progress = x.toFloat() / size.width
+                            val sineVal = sin(progress * 2f * Math.PI.toFloat() * 1.2f + waveOffset)
+                            val y = fillY + sineVal * 3.dp.toPx()
+                            lineTo(x.toFloat(), y)
+                        }
+                        lineTo(size.width, size.height)
+                        close()
+                    }
+                    
+                    val path2 = Path().apply {
+                        moveTo(0f, size.height)
+                        for (x in 0..size.width.toInt() step 2) {
+                            val progress = x.toFloat() / size.width
+                            // Opposite direction wave
+                            val sineVal = sin(-progress * 2f * Math.PI.toFloat() * 1.5f + waveOffset + 11f)
+                            val y = fillY + sineVal * 2.5.dp.toPx()
+                            lineTo(x.toFloat(), y)
+                        }
+                        lineTo(size.width, size.height)
+                        close()
+                    }
+                    
+                    // Draw outer subtle liquid backlayer
+                    drawPath(
+                        path = path2,
+                        color = Color(0xFF0288D1).copy(alpha = 0.35f)
+                    )
+                    
+                    // Draw rich primary liquid wave with smooth water gradients
+                    drawPath(
+                        path = path1,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF29B6F6).copy(alpha = 0.9f),
+                                Color(0xFF0288D1).copy(alpha = 0.5f)
+                            )
+                        )
+                    )
+                    
+                    // Glass highlight sheen on the gauge sphere cover
+                    drawArc(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.25f), Color.Transparent)
+                        ),
+                        startAngle = 180f,
+                        sweepAngle = 180f,
+                        useCenter = true,
+                        style = Stroke(width = 0.5.dp.toPx())
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SunProgressWidget(isDay: Boolean) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(135.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.04f)
+        ),
+        border = BorderStroke(
+            width = 1.2.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.02f))
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "SUN ORBIT / СУТОЧНЫЙ ЦИКЛ",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                    color = ImmersiveTextSecondary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Rounded.WbSunny,
+                    contentDescription = null,
+                    tint = if (isDay) Color(0xFFFFD600) else Color(0xFFCFD1D6),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            
+            Column {
+                Text(
+                    text = if (isDay) "Day / День" else "Night / Ночь",
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
+                Text(
+                    text = if (isDay) "Set at 21:04 / Закат" else "Rise at 05:12 / Восход",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = ImmersiveTextSecondary
+                )
+            }
+            
+            // Pulsing sun ray animations
+            val transition = rememberInfiniteTransition(label = "sun_pulse_orbit")
+            val sunRayScale by transition.animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse"
+            )
+
+            Canvas(modifier = Modifier.fillMaxWidth().height(26.dp)) {
+                val width = size.width
+                val height = size.height
+                val horizonY = height - 2.dp.toPx()
+                
+                // Horizon line underlay
+                drawLine(
+                    color = Color.White.copy(alpha = 0.12f),
+                    start = Offset(0f, horizonY),
+                    end = Offset(width, horizonY),
+                    strokeWidth = 1.2.dp.toPx()
+                )
+                
+                // Parabolic solar trajectory arc path
+                val arcPath = Path().apply {
+                    moveTo(4.dp.toPx(), horizonY)
+                    quadraticTo(
+                        width / 2f,
+                        -12.dp.toPx(),
+                        width - 4.dp.toPx(),
+                        horizonY
+                    )
+                }
+                
+                // Shaded daylight representation gradient beneath solar parabola
+                val shaderPath = Path().apply {
+                    addPath(arcPath)
+                    lineTo(width - 4.dp.toPx(), horizonY)
+                    lineTo(4.dp.toPx(), horizonY)
+                    close()
+                }
+                
+                drawPath(
+                    path = shaderPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            if (isDay) Color(0xFFFFD600).copy(alpha = 0.08f) else Color(0xFF80DEEA).copy(alpha = 0.03f),
+                            Color.Transparent
+                        )
+                    )
+                )
+
+                // Smooth dashed trajectory stroke
+                drawPath(
+                    path = arcPath,
+                    color = if (isDay) Color(0xFFFFD600).copy(alpha = 0.35f) else Color(0xFF80DEEA).copy(alpha = 0.15f),
+                    style = Stroke(
+                        width = 1.6.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
+                    )
+                )
+                
+                // Active Celestial position index logic
+                val progressFraction = if (isDay) 0.44f else 0.78f
+                val orbitX = 4.dp.toPx() + (width - 8.dp.toPx()) * progressFraction
+                
+                // Calculate vertex coordinates via normalized parabolic offset
+                val normX = progressFraction * 2f - 1f
+                val vertexPeak = -11.dp.toPx()
+                val orbitY = vertexPeak + (horizonY - vertexPeak) * (normX * normX)
+                
+                if (isDay) {
+                    // Soft glowing aura halo
+                    drawCircle(
+                        color = Color(0xFFFFD600).copy(alpha = 0.25f),
+                        radius = (8.dp.toPx() * sunRayScale),
+                        center = Offset(orbitX, orbitY)
+                    )
+                    // Sun core
+                    drawCircle(
+                        color = Color(0xFFFFD600),
+                        radius = 4.5.dp.toPx(),
+                        center = Offset(orbitX, orbitY)
+                    )
+                } else {
+                    // Moon aura
+                    drawCircle(
+                        color = Color(0xFFE2E2E6).copy(alpha = 0.15f),
+                        radius = 7.dp.toPx(),
+                        center = Offset(orbitX, orbitY)
+                    )
+                    // Moon core
+                    drawCircle(
+                        color = Color(0xFFE2E2E6),
+                        radius = 3.5.dp.toPx(),
+                        center = Offset(orbitX, orbitY)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AtmosphericAuroraBackground(style: String) {
+    val transition = rememberInfiniteTransition(label = "aurora_movement")
+    
+    val pos1X by transition.animateFloat(
+        initialValue = 0.1f, targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(25000, easing = LinearEasing), RepeatMode.Reverse), label = "pos1X"
+    )
+    val pos1Y by transition.animateFloat(
+        initialValue = 0.2f, targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Reverse), label = "pos1Y"
+    )
+    
+    val pos2X by transition.animateFloat(
+        initialValue = 0.8f, targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(tween(30000, easing = LinearEasing), RepeatMode.Reverse), label = "pos2X"
+    )
+    val pos2Y by transition.animateFloat(
+        initialValue = 0.7f, targetValue = 0.1f,
+        animationSpec = infiniteRepeatable(tween(22000, easing = LinearEasing), RepeatMode.Reverse), label = "pos2Y"
+    )
+
+    val scaleFactor by transition.animateFloat(
+        initialValue = 0.9f, targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(tween(8000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "scale"
+    )
+
+    val (bgStart, bgEnd, blob1, blob2, blob3) = remember(style) {
+        val styleLower = style.lowercase()
+        when {
+            styleLower.contains("sun") || styleLower.contains("clear") -> listOf(
+                Color(0xFF0F172A), Color(0xFF1E1E38), 
+                Color(0xFFEAB308).copy(alpha = 0.15f), 
+                Color(0xFFF97316).copy(alpha = 0.1f),  
+                Color(0xFF3B82F6).copy(alpha = 0.12f)  
+            )
+            styleLower.contains("rain") || styleLower.contains("thunder") || styleLower.contains("storm") || styleLower.contains("drizzle") -> listOf(
+                Color(0xFF0B131E), Color(0xFF1E2640), 
+                Color(0xFF6366F1).copy(alpha = 0.14f), 
+                Color(0xFF1D4ED8).copy(alpha = 0.15f), 
+                Color(0xFF8B5CF6).copy(alpha = 0.12f)  
+            )
+            styleLower.contains("snow") || styleLower.contains("ice") -> listOf(
+                Color(0xFF0A192F), Color(0xFF1E293B), 
+                Color(0xFF38BDF8).copy(alpha = 0.18f), 
+                Color(0xFF06B6D4).copy(alpha = 0.12f), 
+                Color(0xFFE2E8F0).copy(alpha = 0.15f)  
+            )
+            styleLower.contains("cloud") || styleLower.contains("fog") || styleLower.contains("mist") -> listOf(
+                Color(0xFF0F172A), Color(0xFF1E293B), 
+                Color(0xFF475569).copy(alpha = 0.15f), 
+                Color(0xFF334155).copy(alpha = 0.15f), 
+                Color(0xFF64748B).copy(alpha = 0.1f)   
+            )
+            styleLower.contains("volcano") || styleLower.contains("eruption") -> listOf(
+                Color(0xFF0C0202), Color(0xFF1E0A0A), 
+                Color(0xFFEF4444).copy(alpha = 0.18f), 
+                Color(0xFFF97316).copy(alpha = 0.15f), 
+                Color(0xFF781E1E).copy(alpha = 0.12f)  
+            )
+            styleLower.contains("tsunami") || styleLower.contains("flood") || styleLower.contains("wave") -> listOf(
+                Color(0xFF02162E), Color(0xFF0F2D54), 
+                Color(0xFF0D9488).copy(alpha = 0.16f), 
+                Color(0xFF2563EB).copy(alpha = 0.18f), 
+                Color(0xFF0284C7).copy(alpha = 0.12f)  
+            )
+            styleLower.contains("tornado") || styleLower.contains("hurricane") || styleLower.contains("wind") -> listOf(
+                Color(0xFF0F172A), Color(0xFF202B3E), 
+                Color(0xFF10B981).copy(alpha = 0.12f), 
+                Color(0xFF475569).copy(alpha = 0.18f), 
+                Color(0xFF0369A1).copy(alpha = 0.15f)  
+            )
+            else -> listOf(
+                Color(0xFF0B1528), Color(0xFF020617), 
+                Color(0xFF8B5CF6).copy(alpha = 0.14f), 
+                Color(0xFF3B82F6).copy(alpha = 0.14f), 
+                Color(0xFFEC4899).copy(alpha = 0.1f)   
+            )
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(bgStart, bgEnd)
+                )
+            )
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(blob1, Color.Transparent),
+                    center = Offset(width * pos1X, height * pos1Y),
+                    radius = (width * 0.5f) * scaleFactor
+                ),
+                radius = (width * 0.5f) * scaleFactor,
+                center = Offset(width * pos1X, height * pos1Y)
+            )
+            
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(blob2, Color.Transparent),
+                    center = Offset(width * pos2X, height * pos2Y),
+                    radius = (width * 0.45f) * scaleFactor
+                ),
+                radius = (width * 0.45f) * scaleFactor,
+                center = Offset(width * pos2X, height * pos2Y)
+            )
+            
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(blob3, Color.Transparent),
+                    center = Offset(width / 2f, height / 2f),
+                    radius = width * 0.6f
+                ),
+                radius = width * 0.6f,
+                center = Offset(width / 2f, height / 2f)
+            )
+        }
+    }
+}
+
+@Composable
+fun AtmosphericWeatherParticles(style: String) {
+    val styleLower = style.lowercase()
+    val transition = rememberInfiniteTransition(label = "weathersim_transition")
+    
+    val sweepFloat by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sweep"
+    )
+
+    val rainFloat by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 100f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rain"
+    )
+
+    val snowFloat by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "snow"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+        
+        when {
+            styleLower.contains("sun") || styleLower.contains("clear") -> {
+                val cx = width * 0.85f
+                val cy = height * 0.15f
+                
+                val rayScale = 1.0f + 0.05f * sin(sweepFloat * 2f * Math.PI.toFloat())
+                for (i in 0..7) {
+                    val angle = (i * 45f) * (Math.PI / 180.0)
+                    val rx = cx + 80.dp.toPx() * rayScale * kotlin.math.cos(angle).toFloat()
+                    val ry = cy + 80.dp.toPx() * rayScale * kotlin.math.sin(angle).toFloat()
+                    
+                    drawLine(
+                        color = Color(0xFFFFD600).copy(alpha = 0.12f),
+                        start = Offset(cx, cy),
+                        end = Offset(rx, ry),
+                        strokeWidth = 3.dp.toPx()
+                    )
+                }
+            }
+            
+            styleLower.contains("rain") || styleLower.contains("thunder") || styleLower.contains("storm") || styleLower.contains("drizzle") -> {
+                val totalDrops = 30
+                for (i in 0 until totalDrops) {
+                    val xSeed = (i * 7919) % width.toInt()
+                    val ySeed = (i * 9973) % height.toInt()
+                    val speedScalar = 1f + (i % 3) * 0.3f
+                    
+                    val dY = (ySeed + (rainFloat / 100f) * height * speedScalar) % height
+                    val dX = (xSeed + dY * 0.15f) % width 
+                    
+                    drawLine(
+                        color = Color(0xFF38BDF8).copy(alpha = 0.35f),
+                        start = Offset(dX, dY),
+                        end = Offset(dX + 3.dp.toPx(), dY + 15.dp.toPx()),
+                        strokeWidth = 1.2.dp.toPx()
+                    )
+                }
+            }
+            
+            styleLower.contains("snow") || styleLower.contains("ice") -> {
+                val totalFlakes = 25
+                for (i in 0 until totalFlakes) {
+                    val xSeed = (i * 12347) % width.toInt()
+                    val ySeed = (i * 8707) % height.toInt()
+                    val speedScalar = 0.6f + (i % 4) * 0.15f
+                    
+                    val dY = (ySeed + snowFloat * height * speedScalar) % height
+                    val sway = sin(snowFloat * 4f * Math.PI.toFloat() + i) * 15.dp.toPx()
+                    val dX = (xSeed + sway) % width
+                    
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.6f),
+                        radius = (2.dp + (i % 3).dp).toPx(),
+                        center = Offset(dX, dY)
+                    )
+                }
+            }
+            
+            styleLower.contains("wind") || styleLower.contains("tornado") || styleLower.contains("hurricane") -> {
+                val isTornado = styleLower.contains("tornado") || styleLower.contains("hurricane")
+                
+                if (isTornado) {
+                    val cx = width / 2f
+                    val cy = height * 0.7f
+                    val baseRadius = 120.dp.toPx()
+                    
+                    for (layer in 0..4) {
+                        val layerRadius = baseRadius - layer * 20.dp.toPx()
+                        val rotateAngle = sweepFloat * 360f * (1.5f - layer * 0.2f)
+                        val pointsCount = 4
+                        
+                        val path = Path()
+                        for (p in 0..pointsCount) {
+                            val dotProgress = p.toFloat() / pointsCount
+                            val angleRad = (rotateAngle + dotProgress * 360f) * (Math.PI / 180.0)
+                            val px = cx + layerRadius * kotlin.math.cos(angleRad).toFloat()
+                            val py = (cy - layer * 35.dp.toPx()) + (layerRadius * 0.3f) * kotlin.math.sin(angleRad).toFloat()
+                            
+                            if (p == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                        }
+                        
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF64748B).copy(alpha = 0.15f + (layer * 0.04f)),
+                            style = Stroke(
+                                width = (3.dp + layer.dp).toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 15f), sweepFloat * 100f)
+                            )
+                        )
+                    }
+                } else {
+                    val linesCount = 6
+                    for (i in 0 until linesCount) {
+                        val yOffset = (height * 0.2f) + i * (height * 0.12f)
+                        val speedScalar = 1f + (i % 2) * 0.3f
+                        val animOffset = (sweepFloat * width * speedScalar) % width
+                        
+                        val path = Path().apply {
+                            moveTo(animOffset - 120.dp.toPx(), yOffset)
+                            cubicTo(
+                                animOffset - 60.dp.toPx(), yOffset - 25.dp.toPx(),
+                                animOffset, yOffset + 25.dp.toPx(),
+                                animOffset + 60.dp.toPx(), yOffset
+                            )
+                        }
+                        
+                        drawPath(
+                            path = path,
+                            color = ImmersivePrimary.copy(alpha = 0.15f),
+                            style = Stroke(
+                                width = 1.5.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
+                            )
+                        )
+                    }
+                }
+            }
+
+            styleLower.contains("volcano") || styleLower.contains("eruption") -> {
+                val totalSparks = 30
+                for (i in 0 until totalSparks) {
+                    val xSeed = (i * 3121) % width.toInt()
+                    val ySeed = (i * 5437) % height.toInt()
+                    val speedScalar = 0.8f + (i % 3) * 0.3f
+                    val dY = (ySeed - sweepFloat * height * speedScalar) % height
+                    val positiveY = if (dY < 0) dY + height else dY
+                    
+                    val sway = sin(sweepFloat * 6f * Math.PI.toFloat() + i) * 12.dp.toPx()
+                    val dX = (xSeed + sway) % width
+                    
+                    drawCircle(
+                        color = if (i % 2 == 0) Color(0xFFEF4444).copy(alpha = 0.7f) else Color(0xFFF97316).copy(alpha = 0.7f),
+                        radius = (1.5.dp + (i % 3).dp).toPx(),
+                        center = Offset(dX, positiveY)
+                    )
+                }
+            }
+            
+            styleLower.contains("tsunami") || styleLower.contains("flood") -> {
+                val waveHeight = 60.dp.toPx()
+                val cy = height - waveHeight
+                val path = Path()
+                path.moveTo(0f, height)
+                path.lineTo(0f, cy)
+                
+                for (x in 0..width.toInt() step 10) {
+                    val progress = x / width
+                    val sineVal = sin(progress * 2f * Math.PI.toFloat() + sweepFloat * 2f * Math.PI.toFloat())
+                    val y = cy + sineVal * 12.dp.toPx()
+                    path.lineTo(x.toFloat(), y)
+                }
+                
+                path.lineTo(width, height)
+                path.close()
+                
+                drawPath(
+                    path = path,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0D9488).copy(alpha = 0.35f),
+                            Color(0xFF042F40).copy(alpha = 0.15f)
+                        )
+                    )
+                )
+            }
+            
+            else -> {
+                val starCount = 20
+                for (i in 0 until starCount) {
+                    val x = ((i * 123457) % width.toInt()).toFloat()
+                    val y = ((i * 76543) % height.toInt()).toFloat()
+                    val glowFactor = 0.3f + 0.7f * sin(sweepFloat * 2f * Math.PI.toFloat() + i).coerceIn(0f, 1f)
+                    
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.5f * glowFactor),
+                        radius = (1.dp + (i % 2).dp).toPx(),
+                        center = Offset(x, y)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeatherMetricsGrid(
+    windSpeed: Double,
+    humidity: Int,
+    uvIndex: Double?,
+    isDay: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+            .testTag("weather_metrics_grid")
+    ) {
+        Text(
+            text = "WEATHER DYNAMICS / ПОКАЗАТЕЛИ АТМОСФЕРЫ",
+            style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
+            color = ImmersivePrimary,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                UvIndexWidget(uvIndex = uvIndex ?: 2.4)
+                HumidityGaugeWidget(humidity = humidity)
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WindCompassWidget(windSpeed = windSpeed)
+                SunProgressWidget(isDay = isDay)
             }
         }
     }
