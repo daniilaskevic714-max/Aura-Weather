@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
@@ -129,19 +130,23 @@ fun AtmosphericMetricsGrid(
                 icon = Icons.Rounded.Compress,
                 iconTint = AuraSkyAccent,
                 primaryValue = WeatherFormatter.formatPressure(data.surfacePressureHpa, preferences.pressureUnit),
-                subtitle = if (data.surfacePressureHpa >= 1013.0) "High pressure" else "Low pressure",
+                subtitle = stringResource(
+                    if (data.surfacePressureHpa >= 1013.0) R.string.pressure_high else R.string.pressure_low
+                ),
                 modifier = Modifier.weight(1f)
             )
             SimpleMetricCard(
                 title = stringResource(R.string.metric_visibility).uppercase(),
                 icon = Icons.Rounded.Visibility,
                 iconTint = AuraAquaMint,
-                primaryValue = String.format(Locale.US, "%.1f km", data.visibilityKm),
-                subtitle = when {
-                    data.visibilityKm >= 10.0 -> "Crystal clear"
-                    data.visibilityKm >= 4.0 -> "Moderate haze"
-                    else -> "Low visibility"
-                },
+                primaryValue = stringResource(R.string.distance_km, data.visibilityKm),
+                subtitle = stringResource(
+                    when {
+                        data.visibilityKm >= 10.0 -> R.string.visibility_clear
+                        data.visibilityKm >= 4.0 -> R.string.visibility_moderate
+                        else -> R.string.visibility_low
+                    }
+                ),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -188,7 +193,7 @@ private fun UvIndexCard(
                     color = AuraTextPrimary
                 )
                 Text(
-                    text = "$category • Max ${String.format(Locale.US, "%.0f", maxUv)}",
+                    text = stringResource(R.string.uv_max_label, category, maxUv),
                     style = MaterialTheme.typography.bodySmall,
                     color = uvColor
                 )
@@ -260,7 +265,11 @@ private fun WindCompassCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "$cardinal • Gusts ${WeatherFormatter.formatWind(gustsKmh, preferences.windSpeedUnit)}",
+                    text = stringResource(
+                        R.string.wind_gusts_label,
+                        cardinal,
+                        WeatherFormatter.formatWind(gustsKmh, preferences.windSpeedUnit)
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuraTextSecondary
                 )
@@ -356,8 +365,9 @@ private fun HumidityWaveCard(
                         tint = AuraTextSecondary,
                         modifier = Modifier.size(12.dp)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = " Clouds $cloudCover%",
+                        text = stringResource(R.string.clouds_percent, cloudCover),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuraTextSecondary
                     )
@@ -415,12 +425,16 @@ private fun SunOrbitCard(
 
         Column {
             Text(
-                text = if (isDay) "Set $sunsetTime" else "Rise $sunriseTime",
+                text = if (isDay) {
+                    stringResource(R.string.sun_set_at, sunsetTime)
+                } else {
+                    stringResource(R.string.sun_rise_at, sunriseTime)
+                },
                 style = MaterialTheme.typography.titleLarge,
                 color = AuraTextPrimary
             )
             Text(
-                text = "↑ $sunriseTime  •  ↓ $sunsetTime",
+                text = stringResource(R.string.sun_times_format, sunriseTime, sunsetTime),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuraTextSecondary
             )
@@ -536,7 +550,7 @@ private fun AirQualityCard(airQuality: AirQualitySummary) {
                     color = AuraTextPrimary
                 )
                 Text(
-                    text = "European AQI (US AQI: ${airQuality.usAqi})",
+                    text = stringResource(R.string.aqi_subtitle, airQuality.usAqi),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuraTextSecondary
                 )
@@ -561,7 +575,7 @@ private fun PollutantBadge(label: String, value: String) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = AuraTextSecondary)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = "$value µg/m³",
+            text = stringResource(R.string.pollutant_unit, value),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
             color = AuraTextPrimary,
             fontWeight = FontWeight.SemiBold

@@ -78,7 +78,7 @@ fun HourlyForecastSection(
                 hourlyItems.maxOf { WeatherFormatter.formatTempNumber(it.temperatureC, temperatureUnit) }
             }
             Text(
-                text = "Range $minT° .. $maxT°",
+                text = stringResource(R.string.hourly_temp_range, minT, maxT),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuraTextSecondary
             )

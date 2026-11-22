@@ -33,4 +33,19 @@
     <string name="metric_nightfall">Nightfall</string>
     <string name="metric_pressure">Pressure</string>
     <string name="metric_visibility">Visibility</string>
+    <string name="hourly_temp_range">Range %1$d° .. %2$d°</string>
+    <string name="clouds_percent">Clouds %1$d%%</string>
+    <string name="sun_set_at">Set %1$s</string>
+    <string name="sun_rise_at">Rise %1$s</string>
+    <string name="sun_times_format">↑ %1$s  •  ↓ %2$s</string>
+    <string name="pressure_high">High pressure</string>
+    <string name="pressure_low">Low pressure</string>
+    <string name="distance_km">%1$.1f km</string>
+    <string name="visibility_clear">Crystal clear</string>
+    <string name="visibility_moderate">Moderate haze</string>
+    <string name="visibility_low">Low visibility</string>
+    <string name="uv_max_label">%1$s • Max %2$.0f</string>
+    <string name="wind_gusts_label">%1$s • Gusts %2$s</string>
+    <string name="aqi_subtitle">European AQI (US AQI: %1$d)</string>
+    <string name="pollutant_unit">%1$s µg/m³</string>
 </resources>

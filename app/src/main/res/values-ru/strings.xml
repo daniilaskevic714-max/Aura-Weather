@@ -33,4 +33,19 @@
     <string name="metric_nightfall">Сумерки</string>
     <string name="metric_pressure">Давление</string>
     <string name="metric_visibility">Видимость</string>
+    <string name="hourly_temp_range">Диапазон %1$d° .. %2$d°</string>
+    <string name="clouds_percent">Облака %1$d%%</string>
+    <string name="sun_set_at">Закат %1$s</string>
+    <string name="sun_rise_at">Восход %1$s</string>
+    <string name="sun_times_format">↑ %1$s  •  ↓ %2$s</string>
+    <string name="pressure_high">Повышенное</string>
+    <string name="pressure_low">Пониженное</string>
+    <string name="distance_km">%1$.1f км</string>
+    <string name="visibility_clear">Ясно</string>
+    <string name="visibility_moderate">Лёгкая дымка</string>
+    <string name="visibility_low">Низкая видимость</string>
+    <string name="uv_max_label">%1$s • Макс. %2$.0f</string>
+    <string name="wind_gusts_label">%1$s • Порывы %2$s</string>
+    <string name="aqi_subtitle">Европейский AQI (US AQI: %1$d)</string>
+    <string name="pollutant_unit">%1$s мкг/м³</string>
 </resources>
