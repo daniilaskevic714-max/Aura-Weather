@@ -15,4 +15,22 @@
     <string name="unknown_location">Неизвестное место</string>
     <string name="retry">Повторить</string>
     <string name="choose_city">Выбрать город</string>
+    <string name="settings_temperature">Температура</string>
+    <string name="settings_wind_speed">Скорость ветра</string>
+    <string name="settings_pressure">Атмосферное давление</string>
+    <string name="settings_unit_celsius">Цельсий (°C)</string>
+    <string name="settings_unit_fahrenheit">Фаренгейт (°F)</string>
+    <string name="settings_attribution">Метеоданные предоставлены Open-Meteo Forecast, Geocoding и Air Quality API.</string>
+    <string name="locations_title">Локации</string>
+    <string name="acquiring_gps">Определяю координаты GPS…</string>
+    <string name="search_results_header">Результаты поиска</string>
+    <string name="no_cities_found">Города по запросу «%1$s» не найдены.</string>
+    <string name="clear_search_desc">Очистить поиск</string>
+    <string name="metric_uv_index">УФ-индекс</string>
+    <string name="metric_wind">Ветер</string>
+    <string name="metric_humidity">Влажность</string>
+    <string name="metric_daylight">Световой день</string>
+    <string name="metric_nightfall">Сумерки</string>
+    <string name="metric_pressure">Давление</string>
+    <string name="metric_visibility">Видимость</string>
 </resources>

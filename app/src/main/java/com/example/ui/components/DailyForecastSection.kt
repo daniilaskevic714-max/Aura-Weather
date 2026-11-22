@@ -113,9 +113,10 @@ private fun DailyForecastRow(
     temperatureUnit: TemperatureUnit,
     onClick: () -> Unit
 ) {
-    val dayLabel = remember(day.date, isToday) {
+    val todayText = stringResource(R.string.weather_today)
+    val dayLabel = remember(day.date, isToday, todayText) {
         if (isToday) {
-            "Today"
+            todayText
         } else {
             try {
                 val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)

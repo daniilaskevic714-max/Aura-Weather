@@ -125,7 +125,7 @@ fun AtmosphericMetricsGrid(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SimpleMetricCard(
-                title = "PRESSURE",
+                title = stringResource(R.string.metric_pressure).uppercase(),
                 icon = Icons.Rounded.Compress,
                 iconTint = AuraSkyAccent,
                 primaryValue = WeatherFormatter.formatPressure(data.surfacePressureHpa, preferences.pressureUnit),
@@ -133,7 +133,7 @@ fun AtmosphericMetricsGrid(
                 modifier = Modifier.weight(1f)
             )
             SimpleMetricCard(
-                title = "VISIBILITY",
+                title = stringResource(R.string.metric_visibility).uppercase(),
                 icon = Icons.Rounded.Visibility,
                 iconTint = AuraAquaMint,
                 primaryValue = String.format(Locale.US, "%.1f km", data.visibilityKm),
@@ -174,7 +174,7 @@ private fun UvIndexCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        CardHeader(title = "UV INDEX", icon = Icons.Rounded.WbSunny, tint = AuraSunGold)
+        CardHeader(title = stringResource(R.string.metric_uv_index).uppercase(), icon = Icons.Rounded.WbSunny, tint = AuraSunGold)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -245,7 +245,7 @@ private fun WindCompassCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        CardHeader(title = "WIND", icon = Icons.Rounded.Air, tint = AuraSkyAccent)
+        CardHeader(title = stringResource(R.string.metric_wind).uppercase(), icon = Icons.Rounded.Air, tint = AuraSkyAccent)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -336,7 +336,7 @@ private fun HumidityWaveCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        CardHeader(title = "HUMIDITY", icon = Icons.Rounded.WaterDrop, tint = AuraSkyAccent)
+        CardHeader(title = stringResource(R.string.metric_humidity).uppercase(), icon = Icons.Rounded.WaterDrop, tint = AuraSkyAccent)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -408,7 +408,7 @@ private fun SunOrbitCard(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         CardHeader(
-            title = if (isDay) "DAYLIGHT" else "NIGHTFALL",
+            title = if (isDay) stringResource(R.string.metric_daylight).uppercase() else stringResource(R.string.metric_nightfall).uppercase(),
             icon = Icons.Rounded.WbTwilight,
             tint = AuraAmber
         )

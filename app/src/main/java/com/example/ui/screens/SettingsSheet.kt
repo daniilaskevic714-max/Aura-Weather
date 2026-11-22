@@ -68,7 +68,7 @@ fun SettingsSheet(
             // Temperature Unit
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "TEMPERATURE",
+                    text = stringResource(R.string.settings_temperature).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuraSkyAccent
                 )
@@ -78,10 +78,14 @@ fun SettingsSheet(
                 ) {
                     TemperatureUnit.entries.forEach { unit ->
                         val selected = preferences.temperatureUnit == unit
+                        val labelText = when (unit) {
+                            TemperatureUnit.CELSIUS -> stringResource(R.string.settings_unit_celsius)
+                            TemperatureUnit.FAHRENHEIT -> stringResource(R.string.settings_unit_fahrenheit)
+                        }
                         FilterChip(
                             selected = selected,
                             onClick = { onSelectTempUnit(unit) },
-                            label = { Text(unit.label) },
+                            label = { Text(labelText) },
                             shape = RoundedCornerShape(14.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = AuraSurface,
@@ -104,7 +108,7 @@ fun SettingsSheet(
             // Wind Speed Unit
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "WIND SPEED",
+                    text = stringResource(R.string.settings_wind_speed).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuraSkyAccent
                 )
@@ -140,7 +144,7 @@ fun SettingsSheet(
             // Pressure Unit
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "BAROMETRIC PRESSURE",
+                    text = stringResource(R.string.settings_pressure).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuraSkyAccent
                 )
@@ -175,7 +179,7 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Meteorological telemetry powered by Open-Meteo Forecast, Geocoding & Air Quality APIs.",
+                text = stringResource(R.string.settings_attribution),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuraTextSecondary
             )

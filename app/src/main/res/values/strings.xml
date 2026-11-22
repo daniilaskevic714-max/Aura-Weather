@@ -15,4 +15,22 @@
     <string name="unknown_location">Unknown Location</string>
     <string name="retry">Retry</string>
     <string name="choose_city">Choose City</string>
+    <string name="settings_temperature">Temperature</string>
+    <string name="settings_wind_speed">Wind Speed</string>
+    <string name="settings_pressure">Barometric Pressure</string>
+    <string name="settings_unit_celsius">Celsius (°C)</string>
+    <string name="settings_unit_fahrenheit">Fahrenheit (°F)</string>
+    <string name="settings_attribution">Meteorological telemetry powered by Open-Meteo Forecast, Geocoding &amp; Air Quality APIs.</string>
+    <string name="locations_title">Locations</string>
+    <string name="acquiring_gps">Acquiring GPS coordinates…</string>
+    <string name="search_results_header">Search Results</string>
+    <string name="no_cities_found">No matching cities found for &quot;%1$s&quot;.</string>
+    <string name="clear_search_desc">Clear search</string>
+    <string name="metric_uv_index">UV Index</string>
+    <string name="metric_wind">Wind</string>
+    <string name="metric_humidity">Humidity</string>
+    <string name="metric_daylight">Daylight</string>
+    <string name="metric_nightfall">Nightfall</string>
+    <string name="metric_pressure">Pressure</string>
+    <string name="metric_visibility">Visibility</string>
 </resources>

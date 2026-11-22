@@ -90,7 +90,7 @@ fun CitySearchSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             Text(
-                text = "Locations",
+                text = stringResource(R.string.locations_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = AuraTextPrimary
             )
@@ -113,7 +113,7 @@ fun CitySearchSheet(
                         IconButton(onClick = onClearQuery) {
                             Icon(
                                 imageVector = Icons.Rounded.Clear,
-                                contentDescription = "Clear search",
+                                contentDescription = stringResource(R.string.clear_search_desc),
                                 tint = AuraTextSecondary
                             )
                         }
@@ -165,7 +165,7 @@ fun CitySearchSheet(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isLocating) "Acquiring GPS coordinates..." else stringResource(R.string.current_location),
+                    text = if (isLocating) stringResource(R.string.acquiring_gps) else stringResource(R.string.current_location),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -208,7 +208,7 @@ fun CitySearchSheet(
                                 if (searchState.items.isEmpty()) {
                                     item {
                                         Text(
-                                            text = "No matching cities found for \"${searchState.query}\".",
+                                            text = stringResource(R.string.no_cities_found, searchState.query),
                                             color = AuraTextSecondary,
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.padding(vertical = 16.dp)
@@ -217,7 +217,7 @@ fun CitySearchSheet(
                                 } else {
                                     item {
                                         Text(
-                                            text = "SEARCH RESULTS",
+                                            text = stringResource(R.string.search_results_header).uppercase(),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = AuraSkyAccent
                                         )
