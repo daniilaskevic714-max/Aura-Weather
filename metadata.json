@@ -1,6 +1,6 @@
 {
   "name": "Aura Weather",
-  "description": "A beautiful and modern weather app featuring today's overview and a 7-day forecast.",
+  "description": "Real-time atmospheric telemetry, 24-hour and 7-day forecasts, air quality monitoring, and global city search powered by Open-Meteo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

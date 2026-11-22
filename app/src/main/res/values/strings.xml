@@ -1,8 +1,16 @@
 <resources>
     <string name="app_name">Aura Weather</string>
     <string name="weather_today">Today</string>
+    <string name="forecast_24_hours">24-Hour Outlook</string>
     <string name="forecast_7_days">7-Day Forecast</string>
-    <string name="loading_weather">Fetching weather data...</string>
-    <string name="error_fetching">Failed to load weather. Check your connection.</string>
+    <string name="atmospheric_details">Atmospheric Details</string>
+    <string name="air_quality_title">Air Quality</string>
+    <string name="loading_weather">Fetching live meteorological data...</string>
+    <string name="error_fetching">Unable to load weather telemetry. Check your connection and retry.</string>
+    <string name="search_cities_hint">Search any city worldwide...</string>
+    <string name="saved_locations">Saved Locations</string>
+    <string name="current_location">Current GPS Location</string>
+    <string name="settings_title">Units &amp; Preferences</string>
+    <string name="feels_like">Feels like</string>
     <string name="unknown_location">Unknown Location</string>
 </resources>

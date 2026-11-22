@@ -1,132 +1,217 @@
 package com.example.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.ForecastDay
+import com.example.data.PressureUnit
+import com.example.data.SavedLocation
+import com.example.data.TemperatureUnit
+import com.example.data.UserPreferences
+import com.example.data.UserPreferencesRepository
+import com.example.data.WeatherDashboardData
 import com.example.data.WeatherRepository
-import com.example.data.WeatherResponse
-import com.example.data.GeminiWeatherRepository
-import com.example.data.GeminiWeatherData
+import com.example.data.WindSpeedUnit
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-import kotlinx.coroutines.withTimeout
-import android.util.Log
-
-sealed class WeatherUiState {
-    object Loading : WeatherUiState()
-    data class Success(
-        val weather: WeatherResponse,
-        val forecast: List<ForecastDay>
-    ) : WeatherUiState()
-    data class Error(val message: String) : WeatherUiState()
+sealed interface WeatherUiState {
+    data object Loading : WeatherUiState
+    data class Success(val data: WeatherDashboardData) : WeatherUiState
+    data class Error(val message: String, val location: SavedLocation) : WeatherUiState
 }
 
-sealed class GeminiWeatherUiState {
-    object Idle : GeminiWeatherUiState()
-    object Loading : GeminiWeatherUiState()
-    data class Success(val data: GeminiWeatherData) : GeminiWeatherUiState()
-    data class Error(val message: String) : GeminiWeatherUiState()
+sealed interface SearchUiState {
+    data object Idle : SearchUiState
+    data object Searching : SearchUiState
+    data class Results(val query: String, val items: List<SavedLocation>) : SearchUiState
+    data class Error(val message: String) : SearchUiState
 }
 
-class WeatherViewModel : ViewModel() {
-    private val repository by lazy { WeatherRepository() }
-    private val geminiRepository by lazy { GeminiWeatherRepository() }
+@OptIn(FlowPreview::class)
+class WeatherViewModel(application: Application) : AndroidViewModel(application) {
+    private val weatherRepository = WeatherRepository()
+    private val prefsRepository = UserPreferencesRepository(application.applicationContext)
 
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
-    val uiState = _uiState.asStateFlow()
+    val uiState: StateFlow<WeatherUiState> = _uiState.asStateFlow()
 
-    private val _geminiState = MutableStateFlow<GeminiWeatherUiState>(GeminiWeatherUiState.Idle)
-    val geminiState = _geminiState.asStateFlow()
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _isAiMode = MutableStateFlow(true) // Default to Gemini AI mode
-    val isAiMode = _isAiMode.asStateFlow()
+    private val _isLocating = MutableStateFlow(false)
+    val isLocating: StateFlow<Boolean> = _isLocating.asStateFlow()
 
-    private val _currentCity = MutableStateFlow("Berlin")
-    val currentCity = _currentCity.asStateFlow()
+    private val _locationMessage = MutableStateFlow<String?>(null)
+    val locationMessage: StateFlow<String?> = _locationMessage.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _searchState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
+    val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
+
+    val preferences: StateFlow<UserPreferences> = prefsRepository.preferencesFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserPreferences())
+
+    val savedLocations: StateFlow<List<SavedLocation>> = prefsRepository.savedLocationsFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_LOCATIONS
+        )
+
+    val activeLocation: StateFlow<SavedLocation> = prefsRepository.activeLocationFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_LOCATIONS.first()
+        )
 
     init {
-        // Fetch static forecast from Open-Meteo
-        fetchWeather()
-        // Fetch real-time AI weather from Gemini
-        fetchGeminiWeather("Berlin")
-    }
-
-    fun setAiMode(enabled: Boolean) {
-        _isAiMode.value = enabled
-    }
-
-    fun fetchGeminiWeather(city: String, simulateDisaster: String? = null) {
-        _currentCity.value = city
         viewModelScope.launch {
-            _geminiState.value = GeminiWeatherUiState.Loading
-            try {
-                val data = geminiRepository.getGeminiWeather(city, simulateDisaster)
-                _geminiState.value = GeminiWeatherUiState.Success(data)
-                
-                // Sync standard radar view with resolved coordinates
-                val lat = data.latitude
-                val lon = data.longitude
-                if (lat != null && lon != null) {
-                    fetchWeather(lat, lon)
+            val initialLocation = prefsRepository.activeLocationFlow.first()
+            loadWeather(initialLocation, showFullLoader = true)
+        }
+
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(350L)
+                .distinctUntilChanged()
+                .collectLatest { query ->
+                    performCitySearch(query)
                 }
-            } catch (e: Exception) {
-                Log.e("WeatherViewModel", "Error fetching Gemini weather", e)
-                _geminiState.value = GeminiWeatherUiState.Error(e.message ?: "Unknown API error")
+        }
+    }
+
+    fun selectLocation(location: SavedLocation, saveToList: Boolean = false) {
+        viewModelScope.launch {
+            prefsRepository.setActiveLocation(location)
+            if (saveToList) {
+                prefsRepository.addSavedLocation(location)
+            }
+            loadWeather(location, showFullLoader = true)
+        }
+    }
+
+    fun togglePinLocation(location: SavedLocation) {
+        viewModelScope.launch {
+            val exists = savedLocations.value.any { it.matchesCoordinates(location.latitude, location.longitude) }
+            if (exists) {
+                if (savedLocations.value.size > 1) {
+                    prefsRepository.removeSavedLocation(location)
+                }
+            } else {
+                prefsRepository.addSavedLocation(location)
             }
         }
     }
 
-    fun fetchGeminiWeatherByCoordinates(lat: Double, lon: Double) {
+    fun removeSavedLocation(location: SavedLocation) {
         viewModelScope.launch {
-            _geminiState.value = GeminiWeatherUiState.Loading
+            prefsRepository.removeSavedLocation(location)
+        }
+    }
+
+    fun refreshWeather() {
+        viewModelScope.launch {
+            val loc = activeLocation.value
+            loadWeather(loc, showFullLoader = _uiState.value !is WeatherUiState.Success)
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        if (query.trim().length < 2) {
+            _searchState.value = SearchUiState.Idle
+        }
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
+        _searchState.value = SearchUiState.Idle
+    }
+
+    fun setLocating(locating: Boolean) {
+        _isLocating.value = locating
+    }
+
+    fun postLocationMessage(message: String?) {
+        _locationMessage.value = message
+    }
+
+    fun loadWeatherByCoordinates(context: Context, lat: Double, lon: Double) {
+        viewModelScope.launch {
+            _isLocating.value = true
             try {
-                val data = geminiRepository.getGeminiWeatherByCoordinates(lat, lon)
-                _geminiState.value = GeminiWeatherUiState.Success(data)
-                _currentCity.value = data.city
-                
-                // Sync standard radar view with resolved coordinates
-                val resolvedLat = data.latitude ?: lat
-                val resolvedLon = data.longitude ?: lon
-                fetchWeather(resolvedLat, resolvedLon)
+                val resolved = weatherRepository.reverseGeocode(context, lat, lon)
+                prefsRepository.setActiveLocation(resolved)
+                prefsRepository.addSavedLocation(resolved)
+                loadWeather(resolved, showFullLoader = true)
             } catch (e: Exception) {
-                Log.e("WeatherViewModel", "Error fetching Gemini weather by coordinates", e)
-                _geminiState.value = GeminiWeatherUiState.Error(e.message ?: "Unknown API error")
+                _locationMessage.value = e.message ?: "Failed to resolve current location"
+            } finally {
+                _isLocating.value = false
             }
         }
     }
 
-    fun fetchWeather(lat: Double = 52.52, lon: Double = 13.41) {
-        viewModelScope.launch {
+    fun setTemperatureUnit(unit: TemperatureUnit) {
+        viewModelScope.launch { prefsRepository.setTemperatureUnit(unit) }
+    }
+
+    fun setWindSpeedUnit(unit: WindSpeedUnit) {
+        viewModelScope.launch { prefsRepository.setWindSpeedUnit(unit) }
+    }
+
+    fun setPressureUnit(unit: PressureUnit) {
+        viewModelScope.launch { prefsRepository.setPressureUnit(unit) }
+    }
+
+    private suspend fun performCitySearch(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) {
+            _searchState.value = SearchUiState.Idle
+            return
+        }
+        _searchState.value = SearchUiState.Searching
+        try {
+            val results = weatherRepository.searchCities(trimmed)
+            _searchState.value = SearchUiState.Results(trimmed, results)
+        } catch (e: Exception) {
+            _searchState.value = SearchUiState.Error(e.message ?: "City search failed")
+        }
+    }
+
+    private suspend fun loadWeather(location: SavedLocation, showFullLoader: Boolean) {
+        if (showFullLoader) {
             _uiState.value = WeatherUiState.Loading
-            try {
-                val response = withTimeout(10000L) {
-                    repository.getWeatherData(lat, lon)
-                }
-                val daily = response.daily
-                val forecast = mutableListOf<ForecastDay>()
-                
-                if (daily != null) {
-                    for (i in daily.time.indices) {
-                        forecast.add(
-                            ForecastDay(
-                                date = daily.time[i],
-                                weatherCode = daily.weatherCode[i],
-                                tempMax = daily.tempMax[i],
-                                tempMin = daily.tempMin[i]
-                            )
-                        )
-                    }
-                }
-                
-                _uiState.value = WeatherUiState.Success(response, forecast)
-                Log.d("WeatherViewModel", "Weather data fetched successfully")
-            } catch (e: Exception) {
-                Log.e("WeatherViewModel", "Error fetching weather", e)
-                _uiState.value = WeatherUiState.Error(e.message ?: "Unknown error")
+        } else {
+            _isRefreshing.value = true
+        }
+        try {
+            val dashboard = weatherRepository.getWeatherDashboard(location)
+            _uiState.value = WeatherUiState.Success(dashboard)
+        } catch (e: Exception) {
+            if (_uiState.value !is WeatherUiState.Success || showFullLoader) {
+                _uiState.value = WeatherUiState.Error(
+                    message = e.message ?: "Unable to fetch weather telemetry",
+                    location = location
+                )
+            } else {
+                _locationMessage.value = "Refresh failed: ${e.message ?: "Network error"}"
             }
+        } finally {
+            _isRefreshing.value = false
         }
     }
 }
-

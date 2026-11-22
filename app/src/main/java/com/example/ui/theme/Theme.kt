@@ -1,64 +1,45 @@
 package com.example.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 
-private val DarkColorScheme =
-  darkColorScheme(
-    primary = ImmersivePrimary,
-    secondary = ImmersiveTextSecondary,
-    tertiary = ImmersiveTextPrimary,
-    background = ImmersiveBgEnd,
-    surface = ImmersiveSurface,
-    onPrimary = ImmersiveBgEnd,
-    onSecondary = ImmersiveBgEnd,
-    onTertiary = ImmersiveBgEnd,
-    onBackground = ImmersiveTextPrimary,
-    onSurface = ImmersiveTextPrimary,
-    surfaceVariant = ImmersiveSurface,
-    onSurfaceVariant = ImmersiveTextSecondary
-  )
+private val AuraDarkColorScheme = darkColorScheme(
+    primary = AuraSkyAccent,
+    onPrimary = AuraMidnight,
+    secondary = AuraAquaMint,
+    onSecondary = AuraMidnight,
+    tertiary = AuraSunGold,
+    onTertiary = AuraMidnight,
+    background = AuraMidnight,
+    onBackground = AuraTextPrimary,
+    surface = AuraSurface,
+    onSurface = AuraTextPrimary,
+    surfaceVariant = AuraSurfaceVariant,
+    onSurfaceVariant = AuraTextSecondary,
+    outline = AuraOutline,
+    error = AuraCoralWarn,
+    onError = AuraMidnight
+)
 
-private val LightColorScheme =
-  lightColorScheme(
-    primary = ImmersivePrimary,
-    secondary = ImmersiveTextSecondary,
-    tertiary = ImmersiveTextPrimary,
-    background = ImmersiveBgEnd,
-    surface = ImmersiveSurface,
-    onPrimary = ImmersiveBgEnd,
-    onSecondary = ImmersiveBgEnd,
-    onTertiary = ImmersiveBgEnd,
-    onBackground = ImmersiveTextPrimary,
-    onSurface = ImmersiveTextPrimary,
-    surfaceVariant = ImmersiveSurface,
-    onSurfaceVariant = ImmersiveTextSecondary
-  )
+val AuraShapes = Shapes(
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(32.dp)
+)
 
 @Composable
-fun MyApplicationTheme(
-  darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = false,
-  content: @Composable () -> Unit,
+fun AuraWeatherTheme(
+    content: @Composable () -> Unit
 ) {
-  val colorScheme =
-    when {
-      dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-      }
-
-      darkTheme -> DarkColorScheme
-      else -> DarkColorScheme // Force dark for immersive look
-    }
-
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    MaterialTheme(
+        colorScheme = AuraDarkColorScheme,
+        typography = AuraTypography,
+        shapes = AuraShapes,
+        content = content
+    )
 }
