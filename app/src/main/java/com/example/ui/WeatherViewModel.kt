@@ -12,6 +12,7 @@ import com.example.data.UserPreferencesRepository
 import com.example.data.WeatherDashboardData
 import com.example.data.WeatherRepository
 import com.example.data.WindSpeedUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -157,6 +158,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 prefsRepository.setActiveLocation(resolved)
                 prefsRepository.addSavedLocation(resolved)
                 loadWeather(resolved, showFullLoader = true)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _locationMessage.value = e.message ?: "Failed to resolve current location"
             } finally {
@@ -187,6 +190,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         try {
             val results = weatherRepository.searchCities(trimmed)
             _searchState.value = SearchUiState.Results(trimmed, results)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             _searchState.value = SearchUiState.Error(e.message ?: "City search failed")
         }
@@ -201,6 +206,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         try {
             val dashboard = weatherRepository.getWeatherDashboard(location)
             _uiState.value = WeatherUiState.Success(dashboard)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (_uiState.value !is WeatherUiState.Success || showFullLoader) {
                 _uiState.value = WeatherUiState.Error(

@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Aura Weather</string>
+    <string name="weather_today">Сегодня</string>
+    <string name="forecast_24_hours">Прогноз на 24 часа</string>
+    <string name="forecast_7_days">Прогноз на 7 дней</string>
+    <string name="atmospheric_details">Показатели атмосферы</string>
+    <string name="air_quality_title">Качество воздуха</string>
+    <string name="loading_weather">Загрузка метеоданных…</string>
+    <string name="error_fetching">Не удалось загрузить погоду. Проверьте соединение и повторите.</string>
+    <string name="search_cities_hint">Поиск города по всему миру…</string>
+    <string name="saved_locations">Сохранённые города</string>
+    <string name="current_location">Текущая геолокация GPS</string>
+    <string name="settings_title">Единицы и настройки</string>
+    <string name="feels_like">Ощущается как</string>
+    <string name="unknown_location">Неизвестное место</string>
+    <string name="retry">Повторить</string>
+    <string name="choose_city">Выбрать город</string>
+</resources>

@@ -541,7 +541,7 @@ private fun WeatherErrorView(
                     ),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text("Retry", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.retry), fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = onSearch,
@@ -551,7 +551,7 @@ private fun WeatherErrorView(
                     ),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text("Choose City")
+                    Text(stringResource(R.string.choose_city))
                 }
             }
         }
